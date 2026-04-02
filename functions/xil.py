@@ -42,18 +42,30 @@ def create_logger(log_filename: str) -> logging.Logger:
   return logger
 
 def log_sample_distribution(chosen_positions, train_data, logger):
-  chosen_labels = []
+  label_counts = Counter()
+  confounded_counts = Counter()
+
   for pos in chosen_positions:
-    _, _, y, _ = train_data[pos] 
-    label = y.item() if isinstance(y, torch.Tensor) else y
-    chosen_labels.append(label)
-        
-  label_counts = Counter(chosen_labels)
-  logger.info(f"--- Class distribution for {len(chosen_positions)} samples ---")
+    _, _, y, masks = train_data[pos] 
+    label = y
+    label_counts[label] += 1
+    is_confounded = False
+    is_confounded = masks.sum() > 0
+            
+    if is_confounded:
+      confounded_counts[label] += 1
+    
+  total_confounded = sum(confounded_counts.values())
+  logger.info(f"--- Class distribution for {len(chosen_positions)} samples ({total_confounded} confounded) ---")
   for label, count in sorted(label_counts.items()):
-    logger.info(f"  Class {label}: {count} samples")
+    count = label_counts[label]
+    conf_count = confounded_counts.get(label, 0)
+    logger.info(f"  Class {label}: {count} total samples ({conf_count} confounded)")
   logger.info("---------------------------------------------------------")
-  return dict(label_counts)
+  return {
+    "label_counts": dict(label_counts),
+    "confounded_counts": dict(confounded_counts)
+  }
 
 
 # Name of checkpoint to reset the model
@@ -206,7 +218,8 @@ def xil_loop(
 def xil_sampling(strategy: str, **kwargs) -> list:
   strategy_map = {
     "random": random_sampling,
-    "simplicity": simplicity_sampling
+    "simplicity": simplicity_sampling,
+    "simplicity_class": simplicity_class_split
   }
 
   if strategy not in strategy_map.keys():
@@ -296,3 +309,86 @@ def plot_xil_log(log_random: dict, log_simplicity:dict, dataset_name:str, filena
   plt.grid(True)
   plt.legend(fontsize=15)
   plt.savefig(f"{filename}.pdf")
+
+from torchmetrics.functional.classification import binary_auroc
+from numpy.typing import ArrayLike
+
+def compute_auc_roc(separation_list: ArrayLike, is_confounded: ArrayLike, labels: ArrayLike) -> dict:
+  """Function to compute correlation between a separation strategy and actual confounder
+  presence.
+  Args:
+    separation_list (ArrayLike): list that tells results of the separation method. 
+    is_confounded (ArrayLike): list with gt results of confounded and not-confounded.
+    labels (ArrayLike): list with the labels for each sample for class-wise correlation.
+  Returns:
+    dict: total and classwise auc roc score. 
+  """
+  preds = torch.as_tensor(separation_list)
+  target = torch.as_tensor(is_confounded)
+  labels_tensor = torch.as_tensor(labels)
+    
+  total_auc = binary_auroc(preds, target).item()
+
+  # Class-wise AUC-ROC
+  class_auc = {}
+  unique_classes = torch.unique(labels_tensor)
+
+  for label in unique_classes:
+    class_mask = (labels_tensor == label)
+    c_scores = preds[class_mask]
+    c_conf = target[class_mask]
+      
+    if len(torch.unique(c_conf)) > 1:
+      class_auc[int(label.item())] = binary_auroc(c_scores, c_conf).item()
+    else:
+      class_auc[int(label.item())] = float('nan')
+
+  return {
+    "total": total_auc,
+    "class": class_auc
+  }
+
+def simplicity_class_split(sampling_pool:list, simplicity: dict, dataset:Any, k:int) -> list:
+  """Class simplicity sampling."""
+  separation_list = []
+  is_confounded = []
+  labels = []
+    
+  for i in range(len(dataset)):
+    unique_id, _, y, real_mask = dataset[i]
+    separation_list.append(simplicity[unique_id])
+    is_confounded.append(1 if real_mask.sum() > 0 else 0)
+    labels.append(int(y))
+        
+  auc_results = compute_auc_roc(separation_list, is_confounded, labels)
+  class_auc = auc_results["class"]
+    
+  valid_classes = set()
+  for cls, auc in class_auc.items():
+    if auc is not None and auc > 0.85: 
+      valid_classes.add(cls)
+            
+  priority_pool = []
+  fallback_pool = []
+    
+  for internal_idx in sampling_pool:
+    unique_id, _, y, _ = dataset[internal_idx]
+    if y in valid_classes:
+      priority_pool.append(internal_idx)
+    else:
+      fallback_pool.append(internal_idx)
+            
+  priority_pool.sort(
+    key=lambda internal_idx: simplicity[dataset.indices[internal_idx]], 
+    reverse=True
+  )
+  fallback_pool.sort(
+    key=lambda internal_idx: simplicity[dataset.indices[internal_idx]], 
+    reverse=True
+  )
+    
+  chosen = priority_pool[:k]
+  if len(chosen) < k:
+    chosen.extend(fallback_pool[:k - len(chosen)])
+        
+  return chosen

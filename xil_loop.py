@@ -12,11 +12,12 @@ BS_LIST = [
   #[0,0,0,0,0,0.5,0.5,0.5,0.5,0.5],
   [0,0,0,0,0,0,0,0.99,0.99,0.99],
   #[0,0,0,0,0,0,0,0.5,0.5,0.5]
+  [0,0,0,0,0,0,0,0,0,0.99],
 ]
 
 CONF_TYPE=2
-BUDGET=2000
-STEP=100
+BUDGET=1000
+STEP=10
 INITIAL=0
 RR_REG=1e-1
 
@@ -37,6 +38,19 @@ if __name__ == "__main__":
       step=STEP,
       initial_query=INITIAL,
       rr_reg=RR_REG
+    ) 
+    print("simplicity-class")
+    exp_xil_loop(
+      seed=SEED,
+      model_name=MODEL,
+      dataset=DATASET,
+      bias_ratio=bs,
+      conf_type=CONF_TYPE,
+      sampling_strategy="simplicity_class",
+      budget=BUDGET,
+      step=STEP,
+      initial_query=INITIAL,
+      rr_reg=RR_REG
     )
     print("random")
     exp_xil_loop(
@@ -52,6 +66,7 @@ if __name__ == "__main__":
       rr_reg=RR_REG
     )
   
+
   DATASET="DecoyFashionMNIST"
   print(f"Dataset {DATASET}")
   for bs in BS_LIST:
@@ -64,6 +79,19 @@ if __name__ == "__main__":
       bias_ratio=bs,
       conf_type=CONF_TYPE,
       sampling_strategy="simplicity",
+      budget=BUDGET,
+      step=STEP,
+      initial_query=INITIAL,
+      rr_reg=1e-3
+    )
+    print("simplicity-class")
+    exp_xil_loop(
+      seed=SEED,
+      model_name=MODEL,
+      dataset=DATASET,
+      bias_ratio=bs,
+      conf_type=CONF_TYPE,
+      sampling_strategy="simplicity_class",
       budget=BUDGET,
       step=STEP,
       initial_query=INITIAL,
