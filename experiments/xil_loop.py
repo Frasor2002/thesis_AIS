@@ -8,7 +8,6 @@ from functions.xil import xil_loop, random_sampling, simplicity_sampling
 from utils.utils import enable_reproducibility
 from typing import Any
 
-# Name of checkpoint to reset the model
 RESET_CHECKPOINT="reset_model"
 
 def exp_xil_loop(
@@ -27,9 +26,9 @@ def exp_xil_loop(
   device = 'cuda' if use_cuda else 'cpu'
   enable_reproducibility(seed)
 
-
   model = load_model(model_name, device=device)
-  save_checkpoint(RESET_CHECKPOINT, model)
+  # Same weights for all successive iterations
+  load_checkpoint(RESET_CHECKPOINT, model, device)
   optim = load_optimizer("SGD", model.parameters(), lr=1e-2, weight_decay=0)
   loss = load_loss_fun("CrossEntropy")
 
@@ -58,7 +57,6 @@ def exp_xil_loop(
   loss, acc = eval_model(model, test_loader, loss,  device)
   print("="*20,f"Test set Loss:{loss:.2f} | Acc:{acc:.2f}.","="*20)
 
-
   # Run XIL loop
   log = xil_loop(
     train_data=train_set,
@@ -73,6 +71,7 @@ def exp_xil_loop(
     rrr_reg_rate=rr_reg,
     log_filename=f"{sampling_strategy}_{conf_type}_{model_name}_{dataset}",
     device=device
-  )  
+  ) 
+  return log
   
   

@@ -6,6 +6,24 @@ import os
 import matplotlib.pyplot as plt
 import torch
 from torchmetrics.functional.classification import binary_auroc
+from utils.utils import enable_reproducibility 
+from model.model import load_model
+from functions.functions import save_checkpoint
+
+
+# Name of checkpoint to reset the model
+RESET_CHECKPOINT="reset_model"
+
+def create_common_checkpoint(seed: int, model_name: str) -> None:
+  """Create a common weight checkpoint at the start of an experiment to ensure fair comparison."""
+  use_cuda = torch.cuda.is_available()
+  device = 'cuda' if use_cuda else 'cpu'
+  enable_reproducibility(seed)
+
+  model = load_model(model_name, device=device)
+  # Same weights for all successive iterations
+  save_checkpoint(RESET_CHECKPOINT, model)
+
 
 def compute_correlations(separation_list: ArrayLike, is_confounded: ArrayLike, labels: ArrayLike) -> dict:
   """Function to compute correlation between a separation strategy and actual confounder

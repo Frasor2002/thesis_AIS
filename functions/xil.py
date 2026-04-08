@@ -62,10 +62,7 @@ def log_sample_distribution(chosen_positions, train_data, logger):
     conf_count = confounded_counts.get(label, 0)
     logger.info(f"  Class {label}: {count} total samples ({conf_count} confounded)")
   logger.info("---------------------------------------------------------")
-  return {
-    "label_counts": dict(label_counts),
-    "confounded_counts": dict(confounded_counts)
-  }
+  return total_confounded, dict(label_counts), dict(confounded_counts)
 
 
 # Name of checkpoint to reset the model
@@ -127,10 +124,14 @@ def xil_loop(
     device (str): device where training happens.
   """
   log = {
+    "conf_sampled" : [],
+    "cls_sampled": [],
+    "cls_conf_sampled" : [],
     "accuracy": [],
     "loss": [],
+    "attr_on_conf": [],
+    "attr_on_conf_cls": [],
     "query": [],
-    "exp_penalty": []
   }
   
   logger = create_logger(log_filename)
@@ -177,7 +178,7 @@ def xil_loop(
       dataset=train_data
     )
 
-    log_sample_distribution(chosen_positions, train_data, logger)
+    tot_conf, cls_counts, cls_conf_counts = log_sample_distribution(chosen_positions, train_data, logger)
 
     # Update explained samples
     for pos in chosen_positions:
@@ -206,10 +207,14 @@ def xil_loop(
     print(exp_penalty)
     logger.info(f"conf ratio={exp_penalty:.4f}")
     logger.info(f"{class_penalty}")
-    
 
+    log["conf_sampled"].append(tot_conf)
+    log["cls_sampled"].append(cls_counts)
+    log["cls_conf_sampled"].append(cls_conf_counts)
     log['accuracy'].append(acc)
     log['loss'].append(loss)
+    log['attr_on_conf'].append(exp_penalty)
+    log['attr_on_conf_cls'].append(class_penalty)
     log['query'].append(query_count)
 
   return log
@@ -228,6 +233,7 @@ def xil_sampling(strategy: str, **kwargs) -> list:
   sampling_fun = strategy_map[strategy]
   chosen = sampling_fun(**kwargs)
   return chosen
+
 
 def random_sampling(sampling_pool:list, k:int, **kwargs) -> list:
   """Baseline sampling strategy that picks k random samples from the pool.
@@ -296,19 +302,6 @@ def compute_simplicity(training_dynamics: dict, metric: str = "MP") -> dict:
 
   return simplicity
 
-def plot_xil_log(log_random: dict, log_simplicity:dict, dataset_name:str, filename: str) -> None:
-  plt.figure(figsize=(10, 6))
-  plt.plot(log_simplicity['epoch'], log_simplicity['accuracy'], marker='', linestyle='-', color='C1', label="Simplicity sampling")
-  plt.plot(log_random['epoch'], log_random['accuracy'], marker='', linestyle='-', color='mediumturquoise', label="Random sampling")
-  plt.xticks(fontsize=14)
-  plt.yticks(fontsize=14)
-  plt.title(f'Sampling comparison on {dataset_name}', fontsize=20)
-  plt.xlabel('XIL Iterations', fontsize=15)
-  plt.ylabel('Accuracy', fontsize=15)
-  plt.tick_params(axis='both', which='major', labelsize=14)
-  plt.grid(True)
-  plt.legend(fontsize=15)
-  plt.savefig(f"{filename}.pdf")
 
 from torchmetrics.functional.classification import binary_auroc
 from numpy.typing import ArrayLike
