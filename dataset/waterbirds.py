@@ -22,7 +22,7 @@ VAL_NP_FILE = os.path.join(WATERBIRDS_PATH, "waterbirds_val.npz")
 TEST_NP_FILE = os.path.join(WATERBIRDS_PATH, "waterbirds_test.npz")
 
 # Ensure all imgs are turned into 224 X 224
-IMG_SHAPE = (364, 364)
+IMG_SHAPE = (224, 224)
 
     
 class Waterbirds(Dataset):
@@ -157,13 +157,9 @@ def prepare_waterbirds():
   
   #print(len(train_id), len(val_id), len(test_id))
   #print(count_a, count_b, count_c)
-  print("Dataset prepared")
   print(f"Number of samples - Train: {len(train_id)}, Val: {len(val_id)}, Test: {len(test_id)}")
   print(f"Confounded ratios - Train: {count_a/len(train_id):.2f}, Val: {count_b/len(val_id):.2f}, Test: {count_c/len(test_id):.2f}")
-  plt.imshow(train_x[0])
-  plt.show()
-  plt.imshow(train_mask[0])
-  plt.show()
+  
   os.makedirs(WATERBIRDS_PATH, exist_ok=True)
   np.savez_compressed(
     TRAIN_NP_FILE,
