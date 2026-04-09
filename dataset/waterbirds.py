@@ -79,6 +79,9 @@ class Waterbirds(Dataset):
     internal_idx = self.index_map[idx]
     return self.__getitem__(internal_idx)
 
+def prepare_waterbirds():
+  """Load all images and segmentation masks"""
+  pass
 
 def load_waterbirds():
   train_id = []
@@ -96,7 +99,7 @@ def load_waterbirds():
 
 
   metadata = pd.read_csv(METADATA_FILE)
-  #print(metadata.head(10))
+  print(metadata.head(10))
   # From this you have the img id, filename to load img and mask, y, split and place info
   for row in metadata.itertuples(index=False): # VERY SLOW
 
@@ -105,6 +108,8 @@ def load_waterbirds():
     #TODO fix filename error for masks
     # TODO filename not compatible for every os
     split = row.split
+    place = row.place
+    # if y == place then sample is confounded
 
     # Load image and mask
     img_path = os.path.join(IMG_PATH, img_filename)
@@ -117,6 +122,9 @@ def load_waterbirds():
     #mask = Image.open(mask_path)
     with Image.open(mask_path) as mask:
       mask = np.array(mask)
+    
+    # Make mask binary
+    mask = (mask > 0)
     
     if split == 0:
       # train

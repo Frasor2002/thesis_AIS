@@ -52,7 +52,7 @@ def plot_helper(results_dict, value_key:str, measure: str, dataset_name, scenari
   plt.tight_layout()
   filename_conf = f"strat_comparison_{dataset_name}_{scenario_name}_{value_key}.pdf"
   save_dir = os.path.join(LOG_DIR,filename_conf)
-  os.makedirs(save_dir, exist_ok=True)
+  os.makedirs(LOG_DIR, exist_ok=True) 
   plt.savefig(save_dir)
   plt.close() # Close figure to free memory
   print(f"Saved plot to {save_dir}")
