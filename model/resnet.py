@@ -254,7 +254,7 @@ class ResNet(nn.Module):
     return out
     
 
-def load_resnet(name: str, n_classes: int, device: str = "cpu") -> ResNet:
+def load_resnet(model_name: str, n_classes: int, device: str = "cpu") -> ResNet:
   """Load a specific ResNet version given name and number of classes for classification.
   Args:
     name (str): name of the ResNet.
@@ -273,10 +273,10 @@ def load_resnet(name: str, n_classes: int, device: str = "cpu") -> ResNet:
     'resnet152': ([64,128,256,512],[3,8,36,3],4,True)
   }
 
-  if name not in model_param.keys():
+  if model_name not in model_param.keys():
     raise ValueError("Wrong ResNet version name.")
   
-  model = ResNet(model_param[name], n_classes)
+  model = ResNet(model_param[model_name], n_classes)
   model = model.to(device)
 
   return model

@@ -13,16 +13,37 @@ BS_LIST = [
   #[0.50]*10,
   [0,0,0,0.99,0.99,0.99,0.99,0.99,0.99,0.99],
   #[0,0,0,0.5,0.5,0.5,0.5,0.5,0.5,0.5],
-  #[0,0,0,0,0,0.99,0.99,0.99,0.99,0.99],
+  [0,0,0,0,0,0.99,0.99,0.99,0.99,0.99],
   #[0,0,0,0,0,0.5,0.5,0.5,0.5,0.5],
-  #[0,0,0,0,0,0,0,0.99,0.99,0.99],
+  [0,0,0,0,0,0,0,0.99,0.99,0.99],
   #[0,0,0,0,0,0,0,0.5,0.5,0.5]
-  #[0,0,0,0,0,0,0,0,0,0.99],
+  [0,0,0,0,0,0,0,0,0,0.99],
 ]
 CONF_TYPE=2
-BUDGET=1
+BUDGET=30
 STEP=1
 INITIAL=0
+
+def get_scenario_name(bs):
+    """Generates a descriptive name for the bias ratio list."""
+    if not bs:
+        return "empty"
+    
+    last_val = bs[-1]
+    
+    # Check if all elements are the same
+    if all(x == last_val for x in bs):
+        return f"all {last_val}"
+        
+    # Count how many elements at the end share the last value
+    count = 0
+    for x in reversed(bs):
+        if x == last_val:
+            count += 1
+        else:
+            break
+            
+    return f"last {count} {last_val}"
 
 
 def plot_helper(results_dict, value_key:str, measure: str, dataset_name, scenario_name):
@@ -50,7 +71,8 @@ def plot_helper(results_dict, value_key:str, measure: str, dataset_name, scenari
   plt.grid(True)
   plt.legend(fontsize=15)
   plt.tight_layout()
-  filename_conf = f"strat_comparison_{dataset_name}_{scenario_name}_{value_key}.pdf"
+  safe_scenario_name = scenario_name.replace(" ", "_")
+  filename_conf = f"strat_comparison_{dataset_name}_{safe_scenario_name}_{value_key}.pdf"
   save_dir = os.path.join(LOG_DIR,filename_conf)
   os.makedirs(LOG_DIR, exist_ok=True) 
   plt.savefig(save_dir)
@@ -69,7 +91,7 @@ if __name__ == "__main__":
   
   datasets_to_run = [
     ("DecoyMNIST", 1e-1),
-    #("DecoyFashionMNIST", 1e-3)
+    ("DecoyFashionMNIST", 1e-3)
   ]
 
   for DATASET, rr_reg in datasets_to_run:
@@ -79,7 +101,7 @@ if __name__ == "__main__":
       print(f"XIL loop bias ratio: {bs}")    
       current_results = {}
             
-      scenario_name = f"scenario_{idx+1}"
+      scenario_name = get_scenario_name(bs)
 
       print("Simplicity")
       current_results["simplicity"] = exp_xil_loop(

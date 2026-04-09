@@ -160,9 +160,15 @@ def evaluate_explainations(pred_expl: torch.Tensor, gt_expl: Any, targets: Any) 
   Returns:
     Any: penalty score.
   """
-  pred = pred_expl.squeeze().detach().cpu()
-  gt = torch.tensor(gt_expl)
-  y = targets
+  pred = pred_expl.detach().cpu()
+  gt = torch.as_tensor(gt_expl).detach().cpu()
+  y = np.array(targets)
+  # Compute multichannel attributions
+  if pred.dim() == 4 and pred.shape[1] > 1:
+    pred = torch.sum(torch.abs(pred), dim=1, keepdim=True)
+  # Ensure mask has shape [B, 1, H, W]
+  if gt.dim() == 3:
+    gt = gt.unsqueeze(1)
 
   pred = pred ** 2
   batch_size = pred.shape[0]
@@ -172,7 +178,7 @@ def evaluate_explainations(pred_expl: torch.Tensor, gt_expl: Any, targets: Any) 
   is_confounded = (torch.sum(gt_flat, dim=1) > 0)
   pred_conf = pred_flat[is_confounded]
   gt_conf = gt_flat[is_confounded]
-  y_conf = np.array(targets)[is_confounded.numpy()]
+  y_conf = y[is_confounded.numpy()]
     
   attr_on_conf = torch.sum(pred_conf * gt_conf, dim=1)
   total_attr = torch.sum(pred_conf, dim=1)
@@ -185,10 +191,10 @@ def evaluate_explainations(pred_expl: torch.Tensor, gt_expl: Any, targets: Any) 
 
   num_total = batch_size
   num_confounded = is_confounded.sum().item()
-  num_unconfounded = num_total - num_confounded
+  # = num_total - num_confounded
   
-  pct_confounded = (num_confounded / num_total) * 100
-  pct_unconfounded = (num_unconfounded / num_total) * 100
+  #pct_confounded = (num_confounded / num_total) * 100
+  #pct_unconfounded = (num_unconfounded / num_total) * 100
   
   #print(f"Total samples in batch: {num_total}")
   #print(f"Unconfounded (Mask == 0): {num_unconfounded} samples ({pct_unconfounded:.2f}%)")

@@ -2,9 +2,11 @@ from torch.utils.data.dataloader import DataLoader
 from typing import List
 from dataset.decoy_mnist import load_decoyMNIST
 from dataset.decoy_fmnist import load_decoyFashionMNIST
+from dataset.waterbirds import load_waterbirds
 from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 
 def visualize_k_samples(dataset: Any, label: int, k: int = 5) -> None:
   """Visualization helper to see k samples with a given label.
@@ -20,12 +22,31 @@ def visualize_k_samples(dataset: Any, label: int, k: int = 5) -> None:
 
   tr_indices = np.where(dataset.y == label)[0]  
   k_actual = min(k, len(tr_indices))
+  if k_actual == 0:
+    print(f"No samples found for label {label}.")
+    return
   selected_indices = np.random.permutation(tr_indices)[:k_actual]
 
   for a, i in enumerate(selected_indices):
     _, x, y, _ = dataset[i]
+    if isinstance(x, torch.Tensor):
+      x = x.cpu().numpy()
+        
+    if x.min() < 0 or x.max() > 1:
+      x = (x - x.min()) / (x.max() - x.min())
+
+    if len(x.shape) == 3:
+      if x.shape[0] == 1:
+        img_to_plot = x.squeeze(0)
+        axes[a].imshow(img_to_plot, cmap='gray')
+      elif x.shape[0] == 3:
+        img_to_plot = np.transpose(x, (1, 2, 0))
+        axes[a].imshow(img_to_plot)
+      else:
+        raise ValueError(f"Unsupported channel size: {x.shape[0]}")
+    else:
+      axes[a].imshow(x, cmap='gray')
     
-    axes[a].imshow(x.reshape(28, 28), cmap='gray')
     axes[a].set_xticks([])
     axes[a].set_yticks([])
     
@@ -50,7 +71,8 @@ def load_data(name: str, **kwargs: Any):
   """
   datasets = {
     "DecoyMNIST": load_decoyMNIST,
-    "DecoyFashionMNIST": load_decoyFashionMNIST
+    "DecoyFashionMNIST": load_decoyFashionMNIST,
+    "Waterbirds": load_waterbirds
   }
   
   if name not in datasets.keys():
