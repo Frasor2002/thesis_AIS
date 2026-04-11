@@ -295,3 +295,50 @@ def exp_confounder_study(
   log_corr_results(result, filename=f"td_corr_{model_name}_{dataset}_{conf_type}_{add}")
   result = compute_auc_roc(separation_list, is_confounded, labels)
   log_auc_results(result, filename=f"td_auroc_{model_name}_{dataset}_{conf_type}_{add}")
+
+
+def wb_conf_study(seed):
+  use_cuda = torch.cuda.is_available()
+  device = 'cuda' if use_cuda else 'cpu'
+  enable_reproducibility(seed)
+
+  model = load_model("ResNet50", device=device)
+  optim = load_optimizer("SGD", model.parameters(), lr=1e-2, weight_decay=0)
+  loss = load_loss_fun("CrossEntropy")
+  train_set, val_set, test_set = load_data("Waterbirds",reload=False)
+  data = [train_set, val_set, test_set]
+  params = {"batch_size":64}
+  m_params = [params]*3
+  train_loader, val_loader, test_loader = create_dataloaders(data, m_params)
+
+  log, dyn = train_model(
+    model=model, 
+    train_loader=train_loader, 
+    optimizer=optim, 
+    loss_fun=loss, 
+    n_epochs=50, 
+    eval_loader=val_loader, 
+    device=device
+  )
+  loss, acc = eval_model(model, test_loader, loss,  device)
+  print("="*20,f"Test set Loss:{loss:.2f} | Acc:{acc:.2f}.","="*20)
+
+  # Plot losses and training
+  print(" | ".join(f"{k}: {v:.4f}" if isinstance(v, float) else f"{k}: {v}" for k, v in log.items()))
+  plot_training_log(log, f"cs_waterbirds_{seed})")
+
+  simplicity = compute_simplicity(dyn, metric="MP")
+
+  separation_list = []
+  is_confounded = []
+  labels = []
+  for id in range(len(train_set)):
+    index, _, label, mask = train_set[id] 
+    separation_list.append(simplicity[index])
+    is_confounded.append(1 if mask.sum() > 1 else 0)
+    labels.append(label.item())
+
+  result = compute_correlations(separation_list, is_confounded, labels)
+  log_corr_results(result, filename=f"td_corr_Waterbirds")
+  result = compute_auc_roc(separation_list, is_confounded, labels)
+  log_auc_results(result, filename=f"td_auroc_Waterbirds")

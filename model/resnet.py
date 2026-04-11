@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torchvision.models as models
 from typing import Optional, Type
 
 
@@ -253,12 +254,29 @@ class ResNet(nn.Module):
     out = self.fc(out)
     return out
     
+def load_pretrained_weights(model: nn.Module, model_name: str) -> None:
+  """
+  Download pretrained resnet weights.
+  """
+  tv_models = {
+    'resnet18': models.resnet18,
+    'resnet34': models.resnet34,
+    'resnet50': models.resnet50,
+    'resnet101': models.resnet101,
+    'resnet152': models.resnet152
+  }
+  tv_model = tv_models[model_name](pretrained=True)
+  pretrained_dict = tv_model.state_dict()
+  pretrained_dict = {k: v for k, v in pretrained_dict.items() if not k.startswith('fc.')}
+  model.load_state_dict(pretrained_dict, strict=False)
 
-def load_resnet(model_name: str, n_classes: int, device: str = "cpu") -> ResNet:
+
+def load_resnet(model_name: str, n_classes: int, pretrained: bool = False, device: str = "cpu") -> ResNet:
   """Load a specific ResNet version given name and number of classes for classification.
   Args:
     name (str): name of the ResNet.
     n_classes (int): number of output classes.
+    pretrained (bool): load pretrained weights.
     device (str): device to load the model on.
   Returns:
     ResNet: ResNet model chosen.
@@ -277,6 +295,7 @@ def load_resnet(model_name: str, n_classes: int, device: str = "cpu") -> ResNet:
     raise ValueError("Wrong ResNet version name.")
   
   model = ResNet(model_param[model_name], n_classes)
+  if pretrained: load_pretrained_weights(model, model_name)
   model = model.to(device)
 
   return model

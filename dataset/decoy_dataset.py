@@ -112,7 +112,7 @@ def confound_dataset(x: np.ndarray, y: np.ndarray, bias_ratio: list, variation: 
 
     if not is_spurious:
       # Clear mask if confounder is random
-      confounded = img.copy()
+      confounded = img.copy() # To remove conf patch
       mask = np.zeros_like(img)
 
     xc.append(confounded)
