@@ -28,7 +28,7 @@ class LossWrapper(Module):
 
 
 class RRR(Module):
-  def __init__(self, reg_rate:float=1, base_loss:Callable=CrossEntropyLoss()) -> None:
+  def __init__(self, reg_rate:float=1, base_loss:Callable=CrossEntropyLoss(), normalize: bool=True) -> None:
     """Initialize Right for Right Reasons.
     Args:
       reg_rate (float): regularization rate.
@@ -38,6 +38,7 @@ class RRR(Module):
     super().__init__()
     self.reg_rate = reg_rate
     self.base_loss = base_loss
+    self.normalize = normalize
   
   def forward(self, logits:torch.Tensor, targets: torch.Tensor, inputs: torch.Tensor, masks: torch.Tensor) -> torch.Tensor:
     """Compute RRR loss with mask penalty.
@@ -53,6 +54,8 @@ class RRR(Module):
     ra_loss = self.base_loss(logits, targets)
 
     if self.reg_rate == 0 or masks.sum() == 0:
+      self.curr_ce = ra_loss.item()
+      self.curr_rr = 0.0
       return ra_loss
 
     # Right reason loss term
@@ -66,11 +69,23 @@ class RRR(Module):
       allow_unused=True
     )[0]
     rr_penalty = torch.mul(masks, grads) ** 2
-    rr_loss = torch.sum(rr_penalty) * self.reg_rate
 
-    #print("ra:",ra_loss.item())
-    #print("rr:",rr_loss.item())
+    if self.normalize:
+      # Number of channels
+      num_channels = inputs.size(1)    
+      effective_mask_elements = masks.sum() * num_channels
+      # Mean of attribution per pixel
+      rr_loss = torch.sum(rr_penalty) / effective_mask_elements
+    else:
+      rr_loss = torch.sum(rr_penalty)
+
+    rr_loss *= self.reg_rate
+
+    self.curr_ce = ra_loss.item()
+    self.curr_rr = rr_loss.item()
+
     final_loss = ra_loss + rr_loss
+
     return final_loss
 
 

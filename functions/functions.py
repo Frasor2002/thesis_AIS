@@ -15,7 +15,7 @@ FUNCTION_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJ_DIR = os.path.dirname(FUNCTION_DIR)
 MODEL_DIR = os.path.join(PROJ_DIR, "model")
 
-def train_epoch(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer, loss_fun: Callable, device: str = "cpu") -> Tuple[float, float, dict]:
+def train_epoch(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer, loss_fun: Callable, device: str = "cpu") -> tuple:
   """Train model on all training data.
   Args:
     model (Module): pytorch model to train.
@@ -27,6 +27,8 @@ def train_epoch(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer
     tuple: training loss, accuracy and per-sample training dynamics.
   """
   running_loss = 0.0
+  running_ce_loss = 0.0
+  running_rr_loss = 0.0
   correct_preds = 0
   tot_samples = 0
   epoch_dynamics = {}
@@ -42,6 +44,9 @@ def train_epoch(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer
     optimizer.zero_grad()
     logits = model(imgs)
     loss = loss_fun(logits, targets, imgs, masks)
+    ce_val = getattr(loss_fun, "curr_ce", loss.item())
+    rr_val = getattr(loss_fun, "curr_rr", 0.0)
+
     loss.backward()
     optimizer.step()
 
@@ -68,16 +73,20 @@ def train_epoch(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer
     batch_size = imgs.size(0)
     tot_samples += batch_size
     # Loss (assume loss compute is mean loss over the batch)
-    running_loss += loss.item() * batch_size
+    #running_loss += loss.item() * batch_size
+    running_ce_loss += ce_val * batch_size
+    running_rr_loss += rr_val * batch_size
+
     # Accuracy
     _, predicted_labels = torch.max(logits, 1)
     correct_preds += (predicted_labels == targets).sum().item()
   
   # Compute averages over entire data
-  train_loss = running_loss / tot_samples
   train_acc = correct_preds / tot_samples
+  train_ce_loss = running_ce_loss / tot_samples
+  train_rr_loss = running_rr_loss / tot_samples
 
-  return train_loss, train_acc, epoch_dynamics
+  return train_ce_loss, train_rr_loss, train_acc, epoch_dynamics,
 
 
 def eval_model(model: nn.Module, eval_loader: DataLoader, loss_fun: Callable, device: str = "cpu") -> Tuple[float, float]:
@@ -141,7 +150,8 @@ def train_model(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer
   
   log = {
     "epoch": [],
-    "train_loss": [],
+    "train_ce_loss": [],
+    "train_rr_loss": [],
     "train_acc": [],
     "eval_loss": [],
     "eval_acc": []
@@ -154,7 +164,7 @@ def train_model(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer
     loop.set_description(f"Epoch {epoch + 1}/{n_epochs}")
 
     # Train for one epoch
-    train_loss, train_acc, epoch_dyn = train_epoch(model, train_loader, optimizer, loss_fun, device)
+    train_ce_loss,train_rr_loss, train_acc, epoch_dyn = train_epoch(model, train_loader, optimizer, loss_fun, device)
 
     for sample_id, metrics in epoch_dyn.items():
       # init dictionary
@@ -165,11 +175,13 @@ def train_model(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer
       training_dynamics[sample_id].append(metrics)
 
     log["epoch"].append(epoch)
-    log["train_loss"].append(train_loss)
+    log["train_ce_loss"].append(train_ce_loss)
+    log["train_rr_loss"].append(train_rr_loss)
     log["train_acc"].append(train_acc)
 
     info_dict = {
-      "loss": f"{train_loss:.4f}",
+      "ce_loss": f"{train_ce_loss:.4f}",
+      "rr_loss": f"{train_rr_loss:.4f}",
       "acc": f"{train_acc:.4f}"
     }
 

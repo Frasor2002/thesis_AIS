@@ -74,13 +74,14 @@ def add_confounder(x: np.ndarray, digit: int, variation: int = 0) -> tuple:
   return x, mask
 
 
-def confound_dataset(x: np.ndarray, y: np.ndarray, bias_ratio: list, variation: int) -> tuple:
+def confound_dataset(x: np.ndarray, y: np.ndarray, bias_ratio: list, variation: int, patch: bool) -> tuple:
   """Confound a given dataset.
   Args:
     x (ndarray): array of images.
     y (ndarray): array of labels.
     bias_ratio (float): percentage of samples that contain the spurios patch.
     variation (int): confounder variation.
+    patch (bool): to choose to have the uncorrelated patch in unconfounded samples.
   Return:
     tuple: array of confounded images and masks.
   """
@@ -111,8 +112,10 @@ def confound_dataset(x: np.ndarray, y: np.ndarray, bias_ratio: list, variation: 
     confounded, mask = add_confounder(img, conf_label, variation)
 
     if not is_spurious:
+      if not patch:
+        # Remove uncorrelated patch
+        confounded = img.copy() # To remove conf patch
       # Clear mask if confounder is random
-      confounded = img.copy() # To remove conf patch
       mask = np.zeros_like(img)
 
     xc.append(confounded)
@@ -192,12 +195,18 @@ def prepare_generic_data(
   val_size: float=0.2, 
   random_state: int=123,
   bias_ratio: list=[1]*N_CLASSES,
-  variation: int = 0
+  variation: int = 0,
+  train_patch: bool = False,
 ) -> None:
   """Prepare data by loading and confounding it.
   Args:
+    dataset_class (Callable): loader for mnist and fmnist datasets.
+    raw_dir (str): directory where to put unconfounded images.
+    save_path (str): path where to save numpy data.
     val_size (float): how big to make val set with reference to train set.
     random_state (int): random state for reproducibility.
+    variation (int): sets the type of confounder.
+    train_patch (bool): decides if in train set we have the uncorrelated patch in unconf samples.
   """
   os.makedirs(raw_dir, exist_ok=True)
   raw_train = dataset_class(raw_dir, train=True, download=True)
@@ -228,17 +237,20 @@ def prepare_generic_data(
     x_train, 
     y_train, 
     bias_ratio=bias_ratio, 
-    variation=variation)
+    variation=variation,
+    patch=train_patch)
   x_val_c, mask_val   = confound_dataset(
     x_val, 
     y_val, 
     bias_ratio=[0]*N_CLASSES,
-    variation=variation)
+    variation=variation,
+    patch=True)
   x_test_c, mask_test  = confound_dataset(
     x_test, 
     y_test, 
     bias_ratio=[0]*N_CLASSES,
-    variation=variation)
+    variation=variation,
+    patch=True)
 
   # Save prepared data
   os.makedirs(save_path, exist_ok=True)
@@ -262,7 +274,8 @@ def load_decoy(
     seed: int = 123, 
     reload: bool = False, 
     bias_ratio: list = [1]*N_CLASSES,
-    variation: int = 0
+    variation: int = 0,
+    train_patch: bool= False
   ) -> tuple:
   """Load decoy dataset.
   Args:
@@ -278,7 +291,7 @@ def load_decoy(
 
   files_exist = os.path.exists(train_path) and os.path.exists(val_path) and os.path.exists(test_path)
   if not files_exist or reload:
-    prepare_fn(random_state=seed, bias_ratio=bias_ratio, variation=variation)
+    prepare_fn(random_state=seed, bias_ratio=bias_ratio, variation=variation, train_patch=train_patch)
 
   # Load from .npz
   train_np = np.load(train_path)

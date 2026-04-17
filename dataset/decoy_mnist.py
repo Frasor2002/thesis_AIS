@@ -14,7 +14,8 @@ def prepare_data(
   val_size: float=0.2, 
   random_state: int=123,
   bias_ratio: list=[1]*10,
-  variation: int= 0
+  variation: int= 0,
+  train_patch: bool= False
 ) -> None:
   """Prepare data by loading MNIST and confounding it.
   Args:
@@ -28,11 +29,12 @@ def prepare_data(
     val_size=val_size,
     random_state=random_state,
     bias_ratio=bias_ratio,
-    variation=variation
+    variation=variation,
+    train_patch=train_patch
   )
 
 
-def load_decoyMNIST(seed: int = 123, reload: bool = True, bias_ratio:list=[1]*10, variation: int= 0) -> tuple:
+def load_decoyMNIST(seed: int = 123, reload: bool = True, bias_ratio:list=[1]*10, variation: int= 0, train_patch:bool=False) -> tuple:
   """Load DecoyMNIST dataset.
   Args:
     seed (int): seed for reproducibility.
@@ -46,5 +48,6 @@ def load_decoyMNIST(seed: int = 123, reload: bool = True, bias_ratio:list=[1]*10
     seed=seed,
     reload=reload,
     bias_ratio=bias_ratio,
-    variation=variation
+    variation=variation,
+    train_patch=train_patch
   )
