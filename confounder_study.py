@@ -1,4 +1,4 @@
-from experiments.data_study import exp_confounder_study
+from experiments.data_study import run_mnist_study
 from experiments.utils import create_common_checkpoint
 
 if __name__ == "__main__":

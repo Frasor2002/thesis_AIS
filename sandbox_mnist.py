@@ -11,24 +11,24 @@ from functions.loss import load_loss_fun
 import matplotlib.pyplot as plt
 import numpy as np
 
-def mnist_test(seed, loss_name, dataset, bias_ratio, patch):
+def mnist_test(seed, loss_name, dataset,variation, bias_ratio, patch, lr, epoch, reg_rate):
   use_cuda = torch.cuda.is_available()
   device = 'cuda' if use_cuda else 'cpu'
   enable_reproducibility(seed)
 
   model = load_model("ModernLeNet", device=device)
-  optim = load_optimizer("SGD", model.parameters(), lr=1e-2)
+  optim = load_optimizer("SGD", model.parameters(), lr=lr)
   if loss_name == "CrossEntropy":
     loss = load_loss_fun(loss_name)
   else:
-    loss = load_loss_fun("RRR", reg_rate = 1e2, normalize=True)
+    loss = load_loss_fun("RRR", reg_rate = reg_rate, normalize=True)
   
   train_set, val_set, test_set = load_data(
     dataset, 
     seed=seed, 
     reload=True,
     bias_ratio=bias_ratio,
-    variation=2,
+    variation=variation,
     train_patch=patch
   )
   data = [train_set, val_set, test_set]
@@ -41,7 +41,7 @@ def mnist_test(seed, loss_name, dataset, bias_ratio, patch):
     train_loader=train_loader, 
     optimizer=optim, 
     loss_fun=loss, 
-    n_epochs=10, 
+    n_epochs=epoch, 
     eval_loader=val_loader, 
     device=device
   )
@@ -55,5 +55,5 @@ if __name__ == "__main__":
   ce = "CrossEntropy"
   rrr = "RRR"
   mnist = "DecoyMNIST"
-  fmnist = "DecoyFMNIST"
-  mnist_test(123, rrr, mnist, [0.99]*10, True)
+  fmnist = "DecoyFashionMNIST"
+  mnist_test(123, rrr, fmnist, 2, [0.99]*10, True, 1e-3, 20, 1e4)

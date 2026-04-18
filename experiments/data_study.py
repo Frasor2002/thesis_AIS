@@ -103,12 +103,12 @@ def run_mnist_study(
 
 
 # For other datasets to load
-def wb_conf_study(seed):
+def run_wb_study(seed):
   use_cuda = torch.cuda.is_available()
   device = 'cuda' if use_cuda else 'cpu'
   enable_reproducibility(seed)
 
-  model = load_model("ResNet50", device=device)
+  model = load_model("ResNet", model_name="resnet50", n_classes=2, pretrained=True, device=device)
   optim = load_optimizer("SGD", model.parameters(), lr=1e-2, weight_decay=0)
   loss = load_loss_fun("CrossEntropy")
   train_set, val_set, test_set = load_data("Waterbirds",reload=False)

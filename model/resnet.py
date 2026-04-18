@@ -254,7 +254,7 @@ class ResNet(nn.Module):
     out = self.fc(out)
     return out
     
-def load_pretrained_weights(model: nn.Module, model_name: str) -> None:
+def load_pretrained_weights(model, model_name: str) -> None:
   """
   Download pretrained resnet weights.
   """
@@ -269,6 +269,13 @@ def load_pretrained_weights(model: nn.Module, model_name: str) -> None:
   pretrained_dict = tv_model.state_dict()
   pretrained_dict = {k: v for k, v in pretrained_dict.items() if not k.startswith('fc.')}
   model.load_state_dict(pretrained_dict, strict=False)
+
+  # Freeze all layers excepet the last fully connected one
+  for param in model.parameters():
+    param.requires_grad = False
+ 
+  for param in model.fc.parameters():
+    param.requires_grad = True
 
 
 def load_resnet(model_name: str, n_classes: int, pretrained: bool = False, device: str = "cpu") -> ResNet:
