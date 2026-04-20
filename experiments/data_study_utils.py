@@ -110,6 +110,7 @@ def train_model(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer
     loss_fun (Callable): loss function to train.
     n_epochs (int): number of epochs.
     eval_loader (Optional[Dataloader]): optional val dataloader.
+    patience (int): enable arly stopping.
     scheduler (Optional[Callable]): optional lr scheduler.
     device (str): device where to compute tensors.
   Returns:

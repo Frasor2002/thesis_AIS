@@ -56,4 +56,6 @@ if __name__ == "__main__":
   rrr = "RRR"
   mnist = "DecoyMNIST"
   fmnist = "DecoyFashionMNIST"
-  mnist_test(123, rrr, fmnist, 2, [0.99]*10, True, 1e-3, 20, 1e4)
+  conf_type = ([0]*9 + [0.99]*1)
+
+  mnist_test(123, rrr, fmnist, 2, conf_type, False, 1e-3, 10, 1e2)

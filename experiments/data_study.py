@@ -20,7 +20,7 @@ import numpy as np
 import torch.nn.functional as F
 from experiments.utils import compute_correlations, compute_auc_roc,log_corr_results, log_auc_results
 from functions.xil import compute_simplicity
-from data_study_utils import train_model, plot_training_log
+from experiments.data_study_utils import train_model, plot_training_log
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG_DIR = os.path.join(BASE_DIR, "log")

@@ -133,7 +133,7 @@ def eval_model(model: nn.Module, eval_loader: DataLoader, loss_fun: Callable, de
   
 
 
-def train_model(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer, loss_fun: Callable, n_epochs: int, eval_loader: Optional[DataLoader]=None, scheduler: Optional[Callable] = None, device:str="cpu") -> tuple:
+def train_model(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer, loss_fun: Callable, n_epochs: int, eval_loader: Optional[DataLoader]=None, scheduler: Optional[Callable] = None,patience:int=0, device:str="cpu") -> tuple:
   """Train model for a number of epochs.
   Args:
     model (Module): model to train.
@@ -157,6 +157,7 @@ def train_model(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer
     "eval_acc": []
   }
   training_dynamics = {}
+  best_val_loss = float('inf')
 
   loop = tqdm(range(n_epochs), desc="Training model")
 
@@ -194,6 +195,16 @@ def train_model(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer
 
       info_dict["val_loss"] = f"{eval_loss:.4f}"
       info_dict["val_acc"] = f"{eval_acc:.4f}"
+      if patience > 0:
+        if eval_loss < best_val_loss:
+          best_val_loss = eval_loss
+          patience_counter = 0  # Reset counter if validation loss improves
+        else:
+          patience_counter += 1
+          if patience_counter >= patience:
+            loop.set_postfix(info_dict)
+            print(f"\nEarly stopping triggered after {epoch + 1} epochs! No improvement in validation loss for {patience} epochs.")
+            break # Stop training
 
     if scheduler:
       scheduler.step()

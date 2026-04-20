@@ -6,10 +6,9 @@ from model.model import load_model
 from dataset.dataset import load_data, create_dataloaders
 from functions.optimizer import load_optimizer
 from functions.loss import load_loss_fun
-from functions.functions import eval_model, load_checkpoint
+from functions.functions import train_model, eval_model, load_checkpoint
 from utils.utils import enable_reproducibility
 from functions.xil import compute_simplicity
-from data_study_utils import train_model, plot_training_log
 
 def get_confounded_classes(sampling_pool: list, simplicity: dict, dataset: Any) -> Set[int]:
   class_simplicity = defaultdict(list)
@@ -25,14 +24,16 @@ def get_confounded_classes(sampling_pool: list, simplicity: dict, dataset: Any) 
             
     scores_arr = np.array(scores)
     mean_score = np.mean(scores_arr)
+    std_score = np.std(scores_arr)
         
     if mean_score == 0:
       continue
             
 
-    cv = np.std(scores_arr) / mean_score
+    cv = std_score / mean_score
+    print(f"Class {cls}: Mean={mean_score:.4f} | Std={std_score:.4f} | CV={cv:.4f}")
         
-    if cv > 0.3:
+    if cv < 0.8:
       valid_classes.add(cls)
   return valid_classes
 
@@ -66,7 +67,8 @@ def run_class_selector(seed, model_name, dataset, bias_ratio, conf_type, train_p
     optimizer=optim, 
     loss_fun=loss, 
     n_epochs=10, 
-    eval_loader=val_loader, 
+    eval_loader=val_loader,
+    patience=3, 
     device=device
   )
   loss, acc = eval_model(model, test_loader, loss,  device)
