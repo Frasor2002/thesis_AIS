@@ -158,7 +158,7 @@ def train_model(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer
   }
   training_dynamics = {}
   best_val_loss = float('inf')
-
+  patience_counter = 0
   loop = tqdm(range(n_epochs), desc="Training model")
 
   for epoch in loop:

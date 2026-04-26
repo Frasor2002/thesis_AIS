@@ -265,7 +265,7 @@ def load_pretrained_weights(model, model_name: str) -> None:
     'resnet101': models.resnet101,
     'resnet152': models.resnet152
   }
-  tv_model = tv_models[model_name](pretrained=True)
+  tv_model = tv_models[model_name](weights='DEFAULT')
   pretrained_dict = tv_model.state_dict()
   pretrained_dict = {k: v for k, v in pretrained_dict.items() if not k.startswith('fc.')}
   model.load_state_dict(pretrained_dict, strict=False)
@@ -273,7 +273,10 @@ def load_pretrained_weights(model, model_name: str) -> None:
   # Freeze all layers excepet the last fully connected one
   for param in model.parameters():
     param.requires_grad = False
- 
+  
+  for param in model.layer4.parameters():
+    param.requires_grad = True
+
   for param in model.fc.parameters():
     param.requires_grad = True
 
