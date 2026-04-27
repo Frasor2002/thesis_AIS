@@ -281,7 +281,7 @@ def load_pretrained_weights(model, model_name: str) -> None:
     param.requires_grad = True
 
 
-def load_resnet(model_name: str, n_classes: int, pretrained: bool = False, device: str = "cpu") -> ResNet:
+def load_resnet(model_name: str= "resnet50", n_classes: int=2, pretrained: bool = True, device: str = "cpu") -> ResNet:
   """Load a specific ResNet version given name and number of classes for classification.
   Args:
     name (str): name of the ResNet.

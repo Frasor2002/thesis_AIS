@@ -2,8 +2,8 @@ from experiments.select_classes import run_class_selector
 
 SEED = 123
 MODEL_NAME = "ModernLeNet"
-DATASET = "DecoyMNIST"
-BIAS_RATIO = [0]*5 + [0.99] * 5
+DATASET = "DecoyFashionMNIST"
+BIAS_RATIO = [0]*7 + [0.99] * 3
 CONF_TYPE = 2
 TRAIN_PATCH = False
 

@@ -97,7 +97,10 @@ class XIL_Dataset(Dataset):
 
 def xil_loop(
   train_data: Any, 
-  model: nn.Module, 
+  model: nn.Module,
+  lr: float,
+  epochs: int,
+  patience: Optional[int],
   sampling_strategy: str,
   budget: int, 
   val_loader:DataLoader, 
@@ -192,12 +195,13 @@ def xil_loop(
     # Reset model and than retrain
     load_checkpoint(RESET_CHECKPOINT, model, device)
     # Init optimizer and losses
-    optim = load_optimizer("SGD", model.parameters(), lr=1e-2, weight_decay=0)
-    train_loss = load_loss_fun("RRR", reg_rate=rrr_reg_rate)
+    optim = load_optimizer("SGD", model.parameters(), lr=lr, weight_decay=0)
+    train_loss = load_loss_fun("RRR", reg_rate=rrr_reg_rate, normalize=True)
     eval_loss = load_loss_fun("CrossEntropy")
     train_loader = DataLoader(xil_train_dataset, batch_size=32)
 
-    _, _ = train_model(model, train_loader, optim, train_loss, 10, val_loader, device=device)
+    _, _ = train_model(model, train_loader, optim, train_loss, epochs, val_loader, patience=patience, device=device)
+
     loss, acc = eval_model(model, test_loader, eval_loss, device)
     logger.info(f"{query_count}/{budget}.\nTest acc= {acc:.2f} | loss={loss:.2f}")
     

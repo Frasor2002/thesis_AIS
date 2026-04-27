@@ -62,6 +62,7 @@ def plot_helper(results_dict, value_key:str, measure: str, dataset_name, scenari
         
     plt.plot(queries, conf_sampled, marker='', linestyle='-', color=colors[strat], label=strat)
   
+  # TODO remove and create a table
   plt.xticks(fontsize=14)
   plt.yticks(fontsize=14)
   plt.title(f"Sampling comparison {dataset_name} ({scenario_name})", fontsize=20)
