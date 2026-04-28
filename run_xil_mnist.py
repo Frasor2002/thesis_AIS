@@ -52,7 +52,7 @@ if __name__ == "__main__":
       mnist_res.append(res)
 
       # plot single run
-      plot_single_run_comparison(res, "DecoyMNIST", get_scenario_name(bs))
+      plot_single_run_comparison(res, f"DecoyMNIST_{seed}", get_scenario_name(bs))
 
     # plot multiple runs
     plot_multi_run_comparison(mnist_res, "DecoyMNIST",  get_scenario_name(bs))
@@ -67,7 +67,7 @@ if __name__ == "__main__":
       fmnist_res.append(res)
 
       # plot single run
-      plot_single_run_comparison(res, "DecoyFMNIST", get_scenario_name(bs))
+      plot_single_run_comparison(res, f"DecoyFMNIST_{seed}", get_scenario_name(bs))
 
     # plot multiple runs
     plot_multi_run_comparison(fmnist_res, "DecoyFMNIST",  get_scenario_name(bs))

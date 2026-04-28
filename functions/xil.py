@@ -104,7 +104,7 @@ def xil_loop(
   budget: int, 
   val_loader:DataLoader, 
   test_loader: DataLoader,
-  patience: Optional[int]=None,
+  patience: Optional[int]=0,
   tr_dynamics:Optional[dict]=None,
   step_size:int=1,
   starting_query:int=0,
@@ -350,7 +350,8 @@ def simplicity_class_split(sampling_pool:list, simplicity: dict, dataset:Any, k:
   separation_list = []
   is_confounded = []
   labels = []
-    
+  
+  # Get confounded classes
   for i in range(len(dataset)):
     unique_id, _, y, real_mask = dataset[i]
     separation_list.append(simplicity[unique_id])
@@ -364,27 +365,63 @@ def simplicity_class_split(sampling_pool:list, simplicity: dict, dataset:Any, k:
   for cls, auc in class_auc.items():
     if auc is not None and auc > 0.85: 
       valid_classes.add(cls)
-            
-  priority_pool = []
+  # Once we know the conf classes then the logic starts
+  
+  # Group sampling pool by confounded class
+  priority_groups = {cls: [] for cls in valid_classes}
+  #priority_pool = []
   fallback_pool = []
     
   for internal_idx in sampling_pool:
     unique_id, _, y, _ = dataset[internal_idx]
-    if y in valid_classes:
-      priority_pool.append(internal_idx)
+    cls = int(y)
+    if cls in valid_classes:
+      priority_groups[cls].append(internal_idx)
+      #priority_pool.append(internal_idx)
     else:
       fallback_pool.append(internal_idx)
+
+  # Sort confounded classes separately
+  for cls in priority_groups:
+    priority_groups[cls].sort(
+      key=lambda internal_idx: simplicity[dataset.indices[internal_idx]], 
+      reverse=True
+    )
             
-  priority_pool.sort(
-    key=lambda internal_idx: simplicity[dataset.indices[internal_idx]], 
-    reverse=True
-  )
+  #priority_pool.sort(
+  #  key=lambda internal_idx: simplicity[dataset.indices[internal_idx]], 
+  #  reverse=True
+  #)
+  # fallback sort
   fallback_pool.sort(
     key=lambda internal_idx: simplicity[dataset.indices[internal_idx]], 
     reverse=True
   )
     
-  chosen = priority_pool[:k]
+  #chosen = priority_pool[:k]
+  # Get from priority groups randomly samples by doing a round-robin random class choice 
+  chosen = []
+  active_classes = list(valid_classes)
+  while len(chosen) < k and active_classes:
+    # Shuffle the class selection order
+    random.shuffle(active_classes)
+        
+    classes_to_remove = []
+    for cls in active_classes:
+      if len(chosen) == k:
+        break # Reached our budget
+            
+      # Get simplest sample in this class
+      chosen.append(priority_groups[cls].pop(0))
+            
+      # If the class is now empty, mark it for removal
+      if not priority_groups[cls]:
+        classes_to_remove.append(cls)
+                
+    # Remove empty classes
+    for cls in classes_to_remove:
+      active_classes.remove(cls)
+
   if len(chosen) < k:
     chosen.extend(fallback_pool[:k - len(chosen)])
         

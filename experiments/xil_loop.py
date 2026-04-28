@@ -157,7 +157,7 @@ def run_wb_xil(
   device = 'cuda' if use_cuda else 'cpu'
   enable_reproducibility(seed)
 
-  model = load_model("ResNet", device=device)
+  model = load_model("ResNet", model_name="resnet50", n_classes=2, pretrained=True, device=device)
   # Load weights for all successive iterations
   load_checkpoint(RESET_CHECKPOINT, model, device)
   optim = load_optimizer("SGD", model.parameters(), lr=1e-2, weight_decay=0)

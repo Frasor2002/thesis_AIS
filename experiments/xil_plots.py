@@ -180,13 +180,17 @@ def plot_single_run_comparison(results_dict: Dict, dataset_name: str, scenario_n
     """Entry point: Iterates through metrics and generates single-run plots and tables."""
     print(f"--- Generating Single Run Plots for {dataset_name} {scenario_name} ---")
     for metric, ylabel in zip(METRICS, Y_LABELS):
-        save_metric_table_pdf(results_dict, metric, ylabel, dataset_name, scenario_name)
-        plot_single_run(results_dict, metric, ylabel, dataset_name, scenario_name)
+        if metric == "conf_sampled":
+            save_metric_table_pdf(results_dict, metric, ylabel, dataset_name, scenario_name)
+        else:
+            plot_single_run(results_dict, metric, ylabel, dataset_name, scenario_name)
 
 
 def plot_multi_run_comparison(results_dict: List[Dict], dataset_name: str, scenario_name: str):
     """Entry point: Iterates through metrics and generates average/std plots and tables."""
     print(f"--- Generating Multi-Run Plots for {dataset_name} {scenario_name} ---")
     for metric, ylabel in zip(METRICS, Y_LABELS):
-        save_metric_table_pdf(results_dict, metric, ylabel, dataset_name, scenario_name)
-        plot_avg_std(results_dict, metric, ylabel, dataset_name, scenario_name)
+        if metric == "conf_sampled":
+            save_metric_table_pdf(results_dict, metric, ylabel, dataset_name, scenario_name)
+        else:
+            plot_avg_std(results_dict, metric, ylabel, dataset_name, scenario_name)
