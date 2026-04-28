@@ -13,43 +13,43 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 
-def get_confounded_classes(sampling_pool: list, simplicity: dict, dataset: Any, max_minority_ratio: float = 0.015, min_gap: float = 0.30) -> Set[int]:
+def get_confounded_classes(sampling_pool: list, simplicity: dict, dataset: Any, seed:int, max_minority_ratio: float = 0.015, min_gap: float = 0.30) -> Set[int]:
     """
     Detects confounded classes by looking for an overwhelmingly dominant cluster
     (Simplicity near 0.99) leaving only a tiny fraction (< 1.5%) of unbiased samples.
     """
     class_simplicity = defaultdict(list)
     
-    # 1. Group simplicity scores by class
+    # Group simplicity by class
     for internal_idx in sampling_pool:
-        unique_id, _, y, _ = dataset[internal_idx]
-        class_simplicity[int(y)].append(simplicity[unique_id])
+      unique_id, _, y, _ = dataset[internal_idx]
+      class_simplicity[int(y)].append(simplicity[unique_id])
         
     valid_classes = set()
     
     for cls, scores in class_simplicity.items():
-        scores_arr = np.array(scores).reshape(-1, 1)
+      scores_arr = np.array(scores).reshape(-1, 1)
         
-        if len(scores_arr) < 2:
-            continue
+      if len(scores_arr) < 2:
+        continue
             
-        # 2. Force a 2-way split
-        kmeans = KMeans(n_clusters=2, random_state=42, n_init=10).fit(scores_arr)
-        
-        # 3. Calculate Gap
-        centers = kmeans.cluster_centers_.flatten()
-        gap = abs(centers[0] - centers[1])
-        
-        # 4. Calculate Minority Ratio
-        labels = kmeans.labels_
-        cluster_counts = np.bincount(labels)
-        minority_ratio = np.min(cluster_counts) / len(labels)
-        
-        print(f"Class {cls}: Gap = {gap:.4f} | Minority Ratio = {minority_ratio:.4f} | Centers = [{centers[0]:.2f}, {centers[1]:.2f}]")
-        
-        # 5. Flip the logic: Confounded classes have a TINY minority of clean samples
-        if minority_ratio < max_minority_ratio and gap > min_gap:
-            valid_classes.add(cls)
+      # Apply KMEANS with k=2
+      kmeans = KMeans(n_clusters=2, random_state=seed, n_init=10).fit(scores_arr)
+      
+      # Compute gap
+      centers = kmeans.cluster_centers_.flatten()
+      gap = abs(centers[0] - centers[1])
+      
+      # Minority ratio
+      labels = kmeans.labels_
+      cluster_counts = np.bincount(labels)
+      minority_ratio = np.min(cluster_counts) / len(labels)
+      
+      print(f"Class {cls}: Gap = {gap:.4f} | Minority Ratio = {minority_ratio:.4f} | Centers = [{centers[0]:.2f}, {centers[1]:.2f}]")
+      
+      # Use thresholds
+      if minority_ratio < max_minority_ratio and gap > min_gap:
+        valid_classes.add(cls)
             
     return valid_classes
 
@@ -93,12 +93,16 @@ def run_class_selector(seed, model_name, dataset, bias_ratio, conf_type, train_p
   simplicity = compute_simplicity(dyn, metric="MP")
 
   sampling_pool = list(range(len(train_set)))
+
+  if dataset == "DecoyMNIST": min_ratio = 0.015
+  else: min_ratio=0.03
     
   confounded_classes = get_confounded_classes(
     sampling_pool=sampling_pool, 
     simplicity=simplicity, 
     dataset=train_set,
-    max_minority_ratio=0.03,
+    seed=seed,
+    max_minority_ratio=min_ratio,
     min_gap=0.30
   )
     

@@ -1,23 +1,14 @@
 import torch
-import numpy as np
 from model.model import load_model
 from dataset.dataset import load_data, create_dataloaders
 from functions.optimizer import load_optimizer
 from functions.loss import load_loss_fun
-from functions.functions import eval_model, save_checkpoint, load_checkpoint
+from functions.functions import eval_model, load_checkpoint
 from functions.xai import explain_dataset, evaluate_explainations
 from utils.utils import enable_reproducibility
-from typing import Callable, Tuple
-import torch.nn as nn
-from torch.utils.data.dataloader import DataLoader
-from torch.optim import Optimizer
-from tqdm import tqdm
 from functions.loss import load_loss_fun
 import os
-from typing import Optional
-import matplotlib.pyplot as plt
 import numpy as np
-import torch.nn.functional as F
 from experiments.utils import compute_correlations, compute_auc_roc,log_corr_results, log_auc_results
 from functions.xil import compute_simplicity
 from experiments.data_study_utils import train_model, plot_training_log
@@ -122,7 +113,8 @@ def run_wb_study(seed):
     train_loader=train_loader, 
     optimizer=optim, 
     loss_fun=loss, 
-    n_epochs=50, 
+    n_epochs=100,
+    patience=3, 
     eval_loader=val_loader, 
     device=device
   )
