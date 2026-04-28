@@ -37,6 +37,7 @@ def wb_test(seed, loss_name, lr, epoch, reg_rate):
     loss_fun=loss, 
     n_epochs=epoch, 
     eval_loader=val_loader, 
+    patience=3,
     device=device
   )
   print(log)
@@ -50,9 +51,23 @@ if __name__ == "__main__":
   ce = "CrossEntropy"
   rrr = "RRR"
   # First test confusion
-  wb_test(123, ce, 1e-2, 10, 1e2)
+  wb_test(123, ce, 1e-2, 10, 1e2) #87% test
 
   # Try different RRR configuration to find the best one
-  wb_test(123, rrr, 1e-2, 10, 1e2)
-  wb_test(123, rrr, 1e-3, 10, 1e2)
-  wb_test(123, rrr, 1e-1, 10, 1e2)
+  wb_test(123, rrr, 1e-2, 100, 1) #89
+  wb_test(123, rrr, 1e-2, 100, 1e1) #90
+  wb_test(123, rrr, 1e-2, 100, 1e2) #86
+  wb_test(123, rrr, 1e-2, 100, 1e3)
+  wb_test(123, rrr, 1e-2, 100, 1e4)
+
+  wb_test(123, rrr, 1e-3, 100, 1e2)
+  wb_test(123, rrr, 1e-3, 100, 1e3)
+  wb_test(123, rrr, 1e-3, 100, 1e4)
+
+  wb_test(123, rrr, 1e-4, 100, 1e2)
+  wb_test(123, rrr, 1e-4, 100, 1e3)
+  wb_test(123, rrr, 1e-4, 100, 1e4)
+
+  wb_test(123, rrr, 1e-1, 100, 1e2)
+  wb_test(123, rrr, 1e-1, 100, 1e3)
+  wb_test(123, rrr, 1e-1, 100, 1e4)

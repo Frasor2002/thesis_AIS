@@ -56,6 +56,25 @@ if __name__ == "__main__":
   rrr = "RRR"
   mnist = "DecoyMNIST"
   fmnist = "DecoyFashionMNIST"
+  bs7 = ([0]*3 + [0.99]*7)
+  bs5 = ([0]*5 + [0.99]*5)
+  bs3 = ([0]*7 + [0.99]*3)
+  bs1 = ([0]*9 + [0.99]*1)
+  all_bs = [bs7, bs5, bs3, bs1]
+
   conf_type = ([0]*9 + [0.99]*1)
 
-  mnist_test(123, rrr, fmnist, 2, conf_type, False, 1e-3, 10, 1e2)
+  # Check that global params also work with these br
+  for patch in [True, False]:
+    for conf_type in all_bs:
+      # Compute the conf accuracy
+      mnist_test(123, ce, mnist, 2, conf_type, patch, 1e-2, 10, 1e2)
+
+      # See if rrr works
+      mnist_test(123, rrr, mnist, 2, conf_type, patch, 1e-3, 10, 1e2)
+
+      # Compute the conf accuracy
+      mnist_test(123, ce, fmnist, 2, conf_type, patch, 1e-2, 10, 1e2)
+
+      # See if rrr works
+      mnist_test(123, rrr, fmnist, 2, conf_type, patch, 1e-3, 10, 1e2)
