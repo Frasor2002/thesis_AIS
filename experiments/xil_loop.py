@@ -200,7 +200,8 @@ def run_wb_xil(
     rrr_reg_rate=1e1,
     log_filename=f"{sampling_strategy}_Waterbirds_{seed}",
     device=device
-  ) 
+  )
+  return log
   
   
   
