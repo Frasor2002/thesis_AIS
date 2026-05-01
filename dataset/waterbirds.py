@@ -24,6 +24,7 @@ TEST_NP_FILE = os.path.join(WATERBIRDS_PATH, "waterbirds_test.npz")
 # Ensure all imgs are turned into 224 X 224
 IMG_SHAPE = (224, 224)
 
+
     
 class Waterbirds(Dataset):
   def __init__(
@@ -32,6 +33,7 @@ class Waterbirds(Dataset):
     x: np.ndarray, 
     y: np.ndarray, 
     masks: np.ndarray, 
+    places: np.ndarray,
     transform: Optional[transforms.Compose]=None
     ):
     """Initialize Waterbirds.
@@ -45,6 +47,7 @@ class Waterbirds(Dataset):
     self.x = x
     self.y = y
     self.masks = masks
+    self.places = places
     self.transform = transform
     # Map from original img id to positional id
     self.index_map = {orig_idx: internal_idx for internal_idx, orig_idx in enumerate(indices)}
@@ -83,20 +86,53 @@ class Waterbirds(Dataset):
             
     internal_idx = self.index_map[idx]
     return self.__getitem__(internal_idx)
+  
+  def get_place(self, idx: int) -> int:
+    """Give image index return the place type."""
+    if idx not in self.index_map:
+      raise ValueError(f"Original index {idx} is not in this dataset.")
+        
+    internal_idx = self.index_map[idx]
+    return self.places[internal_idx]
 
 def prepare_waterbirds():
   """Load all images and segmentation masks"""
-  train_id, train_x, train_y, train_mask = [], [], [], []
-  val_id, val_x, val_y, val_mask = [], [], [], []
-  test_id, test_x, test_y, test_mask = [], [], [], []
+  train_id, train_x, train_y, train_mask, train_places = [], [], [], [], []
+  val_id, val_x, val_y, val_mask, val_places = [], [], [], [], []
+  test_id, test_x, test_y, test_mask, test_places = [], [], [], [], []
 
   count_a, count_b, count_c = 0, 0, 0
   metadata = pd.read_csv(METADATA_FILE)
   #print(metadata.head(10))
 
+  # Extract the place category from the filepath
+  metadata['place_category'] = metadata['place_filename'].apply(lambda x: str(x).split('/')[2])
+  
+  # Map split integers to readable names
+  split_map = {0: 'Train', 1: 'Val', 2: 'Test'}
+  metadata['split_name'] = metadata['split'].map(split_map)
+
+  # Create cross-tabulations for counts and percentages
+  place_counts = pd.crosstab(metadata['split_name'], metadata['place_category'])
+  place_pcts = pd.crosstab(metadata['split_name'], metadata['place_category'], normalize='index') * 100
+
+  print("--- Background Place Distribution per Split ---")
+  # Iterate through the splits in order
+  for split_name in ['Train', 'Val', 'Test']:
+    if split_name in place_counts.index:
+      print(f"[{split_name} Split]")
+      # Iterate through each place category
+      for place in place_counts.columns:
+        count = place_counts.loc[split_name, place]
+        pct = place_pcts.loc[split_name, place]
+        if count > 0: # Only print if there are images of this type
+          formatted_name = place.replace('_', ' ').title()
+          print(f"  - {formatted_name:<20}: {count:>5} images ({pct:>5.1f}%)")
+  print("-----------------------------------------------")
+
   # From this you have the img id, filename to load img and mask, y, split and place info
   loop = tqdm(metadata.itertuples(index=False), total=len(metadata), desc="Loading waterbirds")
-  for row in loop: # VERY SLOW
+  for row in loop:
     img_id = row.img_id
     img_filename = str(row.img_filename)
     y = row.y
@@ -136,6 +172,7 @@ def prepare_waterbirds():
         #print(mask.shape)
         count_a += 1
       train_mask.append(mask)
+      train_places.append(place)
 
     elif split == 1:
       # val
@@ -143,6 +180,7 @@ def prepare_waterbirds():
       val_x.append(img)
       val_y.append(y)
       val_mask.append(mask)
+      val_places.append(place)
 
       if y == place: count_b+=1
     elif split == 2:
@@ -151,6 +189,7 @@ def prepare_waterbirds():
       test_x.append(img)
       test_y.append(y)
       test_mask.append(mask)
+      test_places.append(place)
       if y == place: count_c+=1
     else:
       raise ValueError("Metadata with wrong split number")
@@ -163,15 +202,15 @@ def prepare_waterbirds():
   os.makedirs(WATERBIRDS_PATH, exist_ok=True)
   np.savez_compressed(
     TRAIN_NP_FILE,
-    indices=np.array(train_id), x=np.array(train_x), y=np.array(train_y, dtype=np.int64), masks=np.array(train_mask)
+    indices=np.array(train_id), x=np.array(train_x), y=np.array(train_y, dtype=np.int64), masks=np.array(train_mask), places=np.array(train_places)
   )
   np.savez_compressed(
     VAL_NP_FILE,
-    indices=np.array(val_id), x=np.array(val_x), y=np.array(val_y, dtype=np.int64), masks=np.array(val_mask)
+    indices=np.array(val_id), x=np.array(val_x), y=np.array(val_y, dtype=np.int64), masks=np.array(val_mask), places=np.array(val_places)
   )
   np.savez_compressed(
     TEST_NP_FILE,
-    indices=np.array(test_id), x=np.array(test_x), y=np.array(test_y, dtype=np.int64), masks=np.array(test_mask)
+    indices=np.array(test_id), x=np.array(test_x), y=np.array(test_y, dtype=np.int64), masks=np.array(test_mask), places=np.array(test_places)
   )
 
 
@@ -195,6 +234,7 @@ def load_waterbirds(reload: bool = False):
     x=train_data['x'],
     y=train_data['y'],
     masks=train_data['masks'],
+    places=train_data['places'],
     transform=data_pipeline
   )
   val_dataset = Waterbirds(
@@ -202,6 +242,7 @@ def load_waterbirds(reload: bool = False):
     x=val_data['x'],
     y=val_data['y'],
     masks=val_data['masks'],
+    places=val_data['places'],
     transform=data_pipeline
   )
   test_dataset = Waterbirds(
@@ -209,6 +250,7 @@ def load_waterbirds(reload: bool = False):
     x=test_data['x'],
     y=test_data['y'],
     masks=test_data['masks'],
+    places=test_data['places'],
     transform=data_pipeline
   )
     
@@ -220,4 +262,4 @@ def load_waterbirds(reload: bool = False):
 
 
 if __name__ == "__main__":
-  train_dataset, val_dataset, test_dataset = load_waterbirds()
+  train_dataset, val_dataset, test_dataset = load_waterbirds(reload=True)

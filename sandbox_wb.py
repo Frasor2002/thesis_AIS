@@ -5,6 +5,7 @@ from dataset.dataset import load_data, create_dataloaders, visualize_k_samples
 from functions.optimizer import load_optimizer
 from functions.loss import load_loss_fun
 from functions.functions import train_model, eval_model, save_checkpoint, load_checkpoint
+from functions.wb_eval import wb_eval
 from functions.xai import explain_dataset, evaluate_explainations
 from utils.utils import enable_reproducibility
 from functions.loss import load_loss_fun
@@ -43,8 +44,10 @@ def wb_test(seed, loss_name, lr, epoch, reg_rate):
   print(log)
 
   eval_loss = load_loss_fun("CrossEntropy")
-  loss, acc = eval_model(model, test_loader, eval_loss, device)
+  loss, acc, wga, gacc = wb_eval(model, test_loader, eval_loss, device)
   print("="*20,f"Test set Loss:{loss:.2f} | Acc:{acc:.2f}.","="*20)
+  print(wga)
+  print(gacc)
 
 
 if __name__ == "__main__":
