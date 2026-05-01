@@ -1,6 +1,7 @@
 import numpy as np
 from collections import defaultdict
 from typing import Any, Set
+from sympy import plot
 import torch
 from model.model import load_model
 from dataset.dataset import load_data, create_dataloaders
@@ -10,48 +11,75 @@ from functions.functions import train_model, eval_model, load_checkpoint
 from utils.utils import enable_reproducibility
 from functions.xil import compute_simplicity
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
-from sklearn.preprocessing import StandardScaler
+import os
+import matplotlib.pyplot as plt
 
-def get_confounded_classes(sampling_pool: list, simplicity: dict, dataset: Any, seed:int, max_minority_ratio: float = 0.015, min_gap: float = 0.30) -> Set[int]:
-    """
-    Detects confounded classes by looking for an overwhelmingly dominant cluster
-    (Simplicity near 0.99) leaving only a tiny fraction (< 1.5%) of unbiased samples.
-    """
-    class_simplicity = defaultdict(list)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_DIR = os.path.join(BASE_DIR, "log")
+PLOT_DIR = os.path.join(LOG_DIR, "plot_class_selection")
+
+def cls_kmeans_viz(class_data, min_gap, max_minority, dataset_name):   
+  os.makedirs(PLOT_DIR, exist_ok=True)
+
+  plt.figure(figsize=(10, 5))
+  for cls, gap, minority_ratio in sorted(class_data, key=lambda x: x[0]):
+    plt.scatter(minority_ratio, gap, label=f'Class {cls}', s=60)
+
+  #plt.axhline(y=min_gap, color='red', linestyle='--', label=f'Gap > {min_gap}')
+  plt.axvline(x=max_minority, color='blue', linestyle='--', label=f'Minority < {max_minority}')
+  plt.xlabel('Minority Ratio')
+  plt.ylabel('Gap')
+  plt.title('Gap vs. Minority Ratio by Class')
+  plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+  plt.grid(True)
+  
+  plt.tight_layout()
+  plt.savefig(f"{dataset_name}_{min_gap}_{max_minority}_plot.pdf")
+
+
+def get_confounded_classes(sampling_pool: list, simplicity: dict, dataset: Any, seed:int,data_name, max_minority_ratio: float = 0.015, min_gap: float = 0.30) -> Set[int]:
+  """
+  Detects confounded classes by looking for an overwhelmingly dominant cluster
+  (Simplicity near 0.99) leaving only a tiny fraction (< 1.5%) of unbiased samples.
+  """
+  class_simplicity = defaultdict(list)
+  
+  # Group simplicity by class
+  for internal_idx in sampling_pool:
+    unique_id, _, y, _ = dataset[internal_idx]
+    class_simplicity[int(y)].append(simplicity[unique_id])
+      
+  valid_classes = set()
+  plot_data = []
+  
+  for cls, scores in class_simplicity.items():
+    scores_arr = np.array(scores).reshape(-1, 1)
+      
+    if len(scores_arr) < 2:
+      continue
+          
+    # Apply KMEANS with k=2
+    kmeans = KMeans(n_clusters=2, random_state=seed, n_init=10).fit(scores_arr)
     
-    # Group simplicity by class
-    for internal_idx in sampling_pool:
-      unique_id, _, y, _ = dataset[internal_idx]
-      class_simplicity[int(y)].append(simplicity[unique_id])
-        
-    valid_classes = set()
+    # Compute gap
+    centers = kmeans.cluster_centers_.flatten()
+    gap = abs(centers[0] - centers[1])
     
-    for cls, scores in class_simplicity.items():
-      scores_arr = np.array(scores).reshape(-1, 1)
-        
-      if len(scores_arr) < 2:
-        continue
-            
-      # Apply KMEANS with k=2
-      kmeans = KMeans(n_clusters=2, random_state=seed, n_init=10).fit(scores_arr)
-      
-      # Compute gap
-      centers = kmeans.cluster_centers_.flatten()
-      gap = abs(centers[0] - centers[1])
-      
-      # Minority ratio
-      labels = kmeans.labels_
-      cluster_counts = np.bincount(labels)
-      minority_ratio = np.min(cluster_counts) / len(labels)
-      
-      print(f"Class {cls}: Gap = {gap:.4f} | Minority Ratio = {minority_ratio:.4f} | Centers = [{centers[0]:.2f}, {centers[1]:.2f}]")
-      
-      # Use thresholds
-      if minority_ratio < max_minority_ratio and gap > min_gap:
-        valid_classes.add(cls)
-            
-    return valid_classes
+    # Minority ratio
+    labels = kmeans.labels_
+    cluster_counts = np.bincount(labels)
+    minority_ratio = np.min(cluster_counts) / len(labels)
+    plot_data.append((cls, gap, minority_ratio))
+    
+    print(f"Class {cls}: Gap = {gap:.4f} | Minority Ratio = {minority_ratio:.4f} | Centers = [{centers[0]:.2f}, {centers[1]:.2f}]")
+    
+    # Use thresholds
+    if minority_ratio < max_minority_ratio: # gap < min_gap
+      valid_classes.add(cls)
+  
+  cls_kmeans_viz(plot_data, min_gap, max_minority_ratio, data_name)
+
+  return valid_classes
 
 
 
@@ -102,6 +130,7 @@ def run_class_selector(seed, model_name, dataset, bias_ratio, conf_type, train_p
     simplicity=simplicity, 
     dataset=train_set,
     seed=seed,
+    data_name=dataset,
     max_minority_ratio=min_ratio,
     min_gap=0.30
   )
