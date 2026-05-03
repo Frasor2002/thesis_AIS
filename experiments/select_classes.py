@@ -10,15 +10,15 @@ from functions.loss import load_loss_fun
 from functions.functions import train_model, eval_model, load_checkpoint
 from utils.utils import enable_reproducibility
 from functions.xil import compute_simplicity
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, AgglomerativeClustering
 import os
 import matplotlib.pyplot as plt
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG_DIR = os.path.join(BASE_DIR, "log")
 PLOT_DIR = os.path.join(LOG_DIR, "plot_class_selection")
 
-def cls_kmeans_viz(class_data, min_gap, max_minority, dataset_name):   
+def cls_kmeans_viz(class_data, max_minority, dataset_name, bs):   
   os.makedirs(PLOT_DIR, exist_ok=True)
 
   plt.figure(figsize=(10, 5))
@@ -34,10 +34,10 @@ def cls_kmeans_viz(class_data, min_gap, max_minority, dataset_name):
   plt.grid(True)
   
   plt.tight_layout()
-  plt.savefig(f"{dataset_name}_{min_gap}_{max_minority}_plot.pdf")
+  path = os.path.join(PLOT_DIR, f"{dataset_name}_{bs}_plot.pdf")
+  plt.savefig(path)
 
-
-def get_confounded_classes(sampling_pool: list, simplicity: dict, dataset: Any, seed:int,data_name, max_minority_ratio: float = 0.015, min_gap: float = 0.30) -> Set[int]:
+def get_confounded_classes(sampling_pool: list, simplicity: dict, dataset: Any, seed:int,data_name, bs, max_minority_ratio: float = 0.015) -> Set[int]:
   """
   Detects confounded classes by looking for an overwhelmingly dominant cluster
   (Simplicity near 0.99) leaving only a tiny fraction (< 1.5%) of unbiased samples.
@@ -77,10 +77,9 @@ def get_confounded_classes(sampling_pool: list, simplicity: dict, dataset: Any, 
     if minority_ratio < max_minority_ratio: # gap < min_gap
       valid_classes.add(cls)
   
-  cls_kmeans_viz(plot_data, min_gap, max_minority_ratio, data_name)
+  cls_kmeans_viz(plot_data, max_minority_ratio, data_name, bs)
 
   return valid_classes
-
 
 
 def run_class_selector(seed, model_name, dataset, bias_ratio, conf_type, train_patch):
@@ -122,7 +121,7 @@ def run_class_selector(seed, model_name, dataset, bias_ratio, conf_type, train_p
 
   sampling_pool = list(range(len(train_set)))
 
-  if dataset == "DecoyMNIST": min_ratio = 0.015
+  if dataset == "DecoyMNIST": min_ratio = 0.0125
   else: min_ratio=0.03
     
   confounded_classes = get_confounded_classes(
@@ -131,8 +130,9 @@ def run_class_selector(seed, model_name, dataset, bias_ratio, conf_type, train_p
     dataset=train_set,
     seed=seed,
     data_name=dataset,
+    #silhouette_threshold=0.65,
     max_minority_ratio=min_ratio,
-    min_gap=0.30
+    bs=str(bias_ratio)
   )
     
   print("="*20, f"Detected Confounded Classes: {confounded_classes}", "="*20)
