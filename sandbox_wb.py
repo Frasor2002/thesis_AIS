@@ -25,7 +25,7 @@ def wb_test(seed, loss_name, lr, epoch, reg_rate):
     loss = load_loss_fun("RRR", reg_rate = reg_rate, normalize=True)
   
   train_set, val_set, test_set = load_data(
-    "Waterbirds", reload=False)
+    "Waterbirds", reload=False, balance=True, seed=seed)
   data = [train_set, val_set, test_set]
   params = {"batch_size":64}
   m_params = [params]*3

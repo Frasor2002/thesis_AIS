@@ -1,7 +1,6 @@
 import numpy as np
 from collections import defaultdict
-from typing import Any, Set
-from sympy import plot
+from typing import Any
 import torch
 from model.model import load_model
 from dataset.dataset import load_data, create_dataloaders
@@ -10,7 +9,7 @@ from functions.loss import load_loss_fun
 from functions.functions import train_model, eval_model, load_checkpoint
 from utils.utils import enable_reproducibility
 from functions.xil import compute_simplicity
-from sklearn.cluster import KMeans, AgglomerativeClustering
+from sklearn.cluster import KMeans
 import os
 import matplotlib.pyplot as plt
 
@@ -18,15 +17,17 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG_DIR = os.path.join(BASE_DIR, "log")
 PLOT_DIR = os.path.join(LOG_DIR, "plot_class_selection")
 
-def cls_kmeans_viz(class_data, max_minority, dataset_name, bs):   
+def cls_kmeans_viz(class_data, dataset_name, bs, max_minority=None):   
   os.makedirs(PLOT_DIR, exist_ok=True)
 
   plt.figure(figsize=(10, 5))
   for cls, gap, minority_ratio in sorted(class_data, key=lambda x: x[0]):
     plt.scatter(minority_ratio, gap, label=f'Class {cls}', s=60)
 
-  #plt.axhline(y=min_gap, color='red', linestyle='--', label=f'Gap > {min_gap}')
-  plt.axvline(x=max_minority, color='blue', linestyle='--', label=f'Minority < {max_minority}')
+  # Make the threshold line optional since we are shifting to distributions
+  if max_minority is not None:
+    plt.axvline(x=max_minority, color='blue', linestyle='--', label=f'Minority < {max_minority}')
+      
   plt.xlabel('Minority Ratio')
   plt.ylabel('Gap')
   plt.title('Gap vs. Minority Ratio by Class')
@@ -36,11 +37,36 @@ def cls_kmeans_viz(class_data, max_minority, dataset_name, bs):
   plt.tight_layout()
   path = os.path.join(PLOT_DIR, f"{dataset_name}_{bs}_plot.pdf")
   plt.savefig(path)
+  plt.close()
 
-def get_confounded_classes(sampling_pool: list, simplicity: dict, dataset: Any, seed:int,data_name, bs, max_minority_ratio: float = 0.015) -> Set[int]:
+def plot_distribution(class_dist, dataset_name, bs):
   """
-  Detects confounded classes by looking for an overwhelmingly dominant cluster
-  (Simplicity near 0.99) leaving only a tiny fraction (< 1.5%) of unbiased samples.
+  Visualizes the final sampling probability distribution as a bar chart and saves it as a PDF.
+  """
+  os.makedirs(PLOT_DIR, exist_ok=True)
+  
+  classes = list(class_dist.keys())
+  probabilities = list(class_dist.values())
+  
+  plt.figure(figsize=(10, 5))
+  plt.bar(classes, probabilities, color='skyblue', edgecolor='black')
+  
+  plt.xlabel('Class')
+  plt.ylabel('Sampling Probability')
+  plt.title(f'Sampling Probability Distribution ({dataset_name}, bs={bs})')
+  plt.xticks(classes)
+  plt.grid(axis='y', linestyle='--', alpha=0.7)
+  
+  plt.tight_layout()
+  path = os.path.join(PLOT_DIR, f"{dataset_name}_{bs}_distribution_plot.pdf")
+  plt.savefig(path)
+  plt.close()
+
+
+def get_sampling_distribution(sampling_pool: list, simplicity: dict, dataset: Any, seed:int, data_name, bs, temperature: float = 0.05) -> dict:
+  """
+  Computes minority ratios for each class and returns a probability distribution.
+  Lower minority ratios yield higher sampling probabilities.
   """
   class_simplicity = defaultdict(list)
   
@@ -49,15 +75,16 @@ def get_confounded_classes(sampling_pool: list, simplicity: dict, dataset: Any, 
     unique_id, _, y, _ = dataset[internal_idx]
     class_simplicity[int(y)].append(simplicity[unique_id])
       
-  valid_classes = set()
   plot_data = []
+  classes = []
+  minority_ratios = []
   
   for cls, scores in class_simplicity.items():
     scores_arr = np.array(scores).reshape(-1, 1)
-      
+    
     if len(scores_arr) < 2:
       continue
-          
+        
     # Apply KMEANS with k=2
     kmeans = KMeans(n_clusters=2, random_state=seed, n_init=10).fit(scores_arr)
     
@@ -69,17 +96,40 @@ def get_confounded_classes(sampling_pool: list, simplicity: dict, dataset: Any, 
     labels = kmeans.labels_
     cluster_counts = np.bincount(labels)
     minority_ratio = np.min(cluster_counts) / len(labels)
+    
     plot_data.append((cls, gap, minority_ratio))
+    classes.append(cls)
+    minority_ratios.append(minority_ratio)
     
     print(f"Class {cls}: Gap = {gap:.4f} | Minority Ratio = {minority_ratio:.4f} | Centers = [{centers[0]:.2f}, {centers[1]:.2f}]")
-    
-    # Use thresholds
-    if minority_ratio < max_minority_ratio: # gap < min_gap
-      valid_classes.add(cls)
-  
-  cls_kmeans_viz(plot_data, max_minority_ratio, data_name, bs)
 
-  return valid_classes
+  # Visualize without the hard threshold line
+  #cls_kmeans_viz(plot_data, data_name, bs)
+
+  if not classes:
+    return {}
+
+  classes = np.array(classes)
+  minority_ratios = np.array(minority_ratios)
+  
+  # 1. Normalize the ratios to a [0, 1] scale
+  min_r = np.min(minority_ratios)
+  max_r = np.max(minority_ratios)
+  
+  if max_r > min_r:
+    scaled_ratios = (minority_ratios - min_r) / (max_r - min_r)
+  else:
+    scaled_ratios = np.zeros_like(minority_ratios)
+  
+  neg_ratios = -scaled_ratios / temperature
+  
+  exp_ratios = np.exp(neg_ratios - np.max(neg_ratios))
+  probabilities = exp_ratios / exp_ratios.sum()
+  
+  class_distribution = {int(cls): float(prob) for cls, prob in zip(classes, probabilities)}
+    
+  
+  return class_distribution
 
 
 def run_class_selector(seed, model_name, dataset, bias_ratio, conf_type, train_patch):
@@ -121,21 +171,29 @@ def run_class_selector(seed, model_name, dataset, bias_ratio, conf_type, train_p
 
   sampling_pool = list(range(len(train_set)))
 
-  if dataset == "DecoyMNIST": min_ratio = 0.0125
-  else: min_ratio=0.03
+  #if dataset == "DecoyMNIST": min_ratio = 0.0125
+  #else: min_ratio=0.03
     
-  confounded_classes = get_confounded_classes(
+# Generate the probability distribution
+  class_distribution = get_sampling_distribution(
     sampling_pool=sampling_pool, 
     simplicity=simplicity, 
     dataset=train_set,
     seed=seed,
     data_name=dataset,
-    #silhouette_threshold=0.65,
-    max_minority_ratio=min_ratio,
-    bs=str(bias_ratio)
+    bs=str(bias_ratio),
+    temperature=0.025 # Adjust this to make sampling more/less aggressive 
   )
-    
-  print("="*20, f"Detected Confounded Classes: {confounded_classes}", "="*20)
-    
-  return confounded_classes
+      
+  print("="*20, f"Class Sampling Distribution:\n", class_distribution, "="*20)
+  plot_distribution(class_distribution, dataset, str(bias_ratio))
+      
+  return class_distribution
 
+"""
+HOW TO USE
+classes = list(class_dist.keys())
+probabilities = list(class_dist.values())
+
+sampled_class = np.random.choice(classes, p=probabilities)
+"""

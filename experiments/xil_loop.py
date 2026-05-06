@@ -163,7 +163,7 @@ def run_wb_xil(
   optim = load_optimizer("SGD", model.parameters(), lr=1e-2, weight_decay=0)
   loss = load_loss_fun("CrossEntropy")
 
-  train_set, val_set, test_set = load_data(name="Waterbirds", reload=False)
+  train_set, val_set, test_set = load_data(name="Waterbirds", reload=False, balance=True, seed=seed)
   
   data = [train_set, val_set, test_set]
   params = {"batch_size":64}

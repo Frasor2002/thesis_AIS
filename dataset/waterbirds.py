@@ -25,6 +25,102 @@ TEST_NP_FILE = os.path.join(WATERBIRDS_PATH, "waterbirds_test.npz")
 IMG_SHAPE = (224, 224)
 
 
+def print_waterbirds_statistics():
+  """Parses the metadata and prints distribution statistics."""
+  if not os.path.exists(METADATA_FILE):
+    print(f"Metadata file not found at {METADATA_FILE}")
+    return
+
+  metadata = pd.read_csv(METADATA_FILE)
+  
+  # Map split integers to readable names
+  split_map = {0: 'Train', 1: 'Val', 2: 'Test'}
+  metadata['split_name'] = metadata['split'].map(split_map)
+
+  # 1. Specific places (extracted from filename)
+  metadata['place_category'] = metadata['place_filename'].apply(lambda x: str(x).split('/')[2])
+  
+  # 2. Aggregated places (binary 0/1 mapped to Land/Water)
+  place_map = {0: 'Land', 1: 'Water'}
+  metadata['place_name'] = metadata['place'].map(place_map)
+
+  # --- Cross-tabulations ---
+  # Specific Places
+  specific_place_counts = pd.crosstab(metadata['split_name'], metadata['place_category'])
+  specific_place_pcts = pd.crosstab(metadata['split_name'], metadata['place_category'], normalize='index') * 100
+  
+  # Aggregated Places
+  agg_place_counts = pd.crosstab(metadata['split_name'], metadata['place_name'])
+  agg_place_pcts = pd.crosstab(metadata['split_name'], metadata['place_name'], normalize='index') * 100
+
+  # Classes (y)
+  class_counts = pd.crosstab(metadata['split_name'], metadata['y'])
+  class_pcts = pd.crosstab(metadata['split_name'], metadata['y'], normalize='index') * 100
+
+  # --- Printing ---
+  print("--- Specific Background Place Distribution ---")
+  for split_name in ['Train', 'Val', 'Test']:
+    if split_name in specific_place_counts.index:
+      print(f"[{split_name} Split]")
+      for place in specific_place_counts.columns:
+        count = specific_place_counts.loc[split_name, place]
+        pct = specific_place_pcts.loc[split_name, place]
+        if count > 0:
+          formatted_name = place.replace('_', ' ').title()
+          print(f"  - {formatted_name:<20}: {count:>5} images ({pct:>5.1f}%)")
+  print("----------------------------------------------")
+
+  print("--- Aggregated Background Place (Land/Water) ---")
+  for split_name in ['Train', 'Val', 'Test']:
+    if split_name in agg_place_counts.index:
+      print(f"[{split_name} Split]")
+      for place in agg_place_counts.columns:
+        count = agg_place_counts.loc[split_name, place]
+        pct = agg_place_pcts.loc[split_name, place]
+        if count > 0:
+          p_label = 0 if place == 'Land' else 1
+          print(f"  - Place {p_label} ({place:<5}): {count:>5} images ({pct:>5.1f}%)")
+  print("------------------------------------------------")
+
+  print("--- Class (y) Distribution ---")
+  for split_name in ['Train', 'Val', 'Test']:
+    if split_name in class_counts.index:
+      print(f"[{split_name} Split]")
+      for cls in class_counts.columns:
+        count = class_counts.loc[split_name, cls]
+        pct = class_pcts.loc[split_name, cls]
+        if count > 0:
+          print(f"  - Class {cls:<14}: {count:>5} images ({pct:>5.1f}%)")
+  print("------------------------------")
+  
+  print("--- (Class, Specific Place) Groups ---")
+  for split_name in ['Train', 'Val', 'Test']:
+    print(f"[{split_name} Split]")
+    split_data = metadata[metadata['split_name'] == split_name]
+    
+    group_counts = split_data.groupby(['y', 'place_category']).size()
+    total_in_split = len(split_data)
+    
+    for (y_val, place), count in group_counts.items():
+      pct = (count / total_in_split) * 100
+      formatted_place = place.replace('_', ' ').title()
+      print(f"  - y={y_val}, p={formatted_place:<14}: {count:>5} images ({pct:>5.1f}%)")
+  print("--------------------------------------")
+
+  print("--- (Class, Aggregated Place) Groups ---")
+  for split_name in ['Train', 'Val', 'Test']:
+    print(f"[{split_name} Split]")
+    split_data = metadata[metadata['split_name'] == split_name]
+    
+    group_counts = split_data.groupby(['y', 'place']).size()
+    total_in_split = len(split_data)
+    
+    for (y_val, p_val), count in group_counts.items():
+      pct = (count / total_in_split) * 100
+      place_str = "Water" if p_val == 1 else "Land"
+      print(f"  - y={y_val}, p={p_val} ({place_str:<5}): {count:>5} images ({pct:>5.1f}%)")
+  print("----------------------------------------")
+
     
 class Waterbirds(Dataset):
   def __init__(
@@ -105,30 +201,11 @@ def prepare_waterbirds():
   metadata = pd.read_csv(METADATA_FILE)
   #print(metadata.head(10))
 
-  # Extract the place category from the filepath
   metadata['place_category'] = metadata['place_filename'].apply(lambda x: str(x).split('/')[2])
   
   # Map split integers to readable names
   split_map = {0: 'Train', 1: 'Val', 2: 'Test'}
   metadata['split_name'] = metadata['split'].map(split_map)
-
-  # Create cross-tabulations for counts and percentages
-  place_counts = pd.crosstab(metadata['split_name'], metadata['place_category'])
-  place_pcts = pd.crosstab(metadata['split_name'], metadata['place_category'], normalize='index') * 100
-
-  print("--- Background Place Distribution per Split ---")
-  # Iterate through the splits in order
-  for split_name in ['Train', 'Val', 'Test']:
-    if split_name in place_counts.index:
-      print(f"[{split_name} Split]")
-      # Iterate through each place category
-      for place in place_counts.columns:
-        count = place_counts.loc[split_name, place]
-        pct = place_pcts.loc[split_name, place]
-        if count > 0: # Only print if there are images of this type
-          formatted_name = place.replace('_', ' ').title()
-          print(f"  - {formatted_name:<20}: {count:>5} images ({pct:>5.1f}%)")
-  print("-----------------------------------------------")
 
   # From this you have the img id, filename to load img and mask, y, split and place info
   loop = tqdm(metadata.itertuples(index=False), total=len(metadata), desc="Loading waterbirds")
@@ -213,16 +290,45 @@ def prepare_waterbirds():
     indices=np.array(test_id), x=np.array(test_x), y=np.array(test_y, dtype=np.int64), masks=np.array(test_mask), places=np.array(test_places)
   )
 
+def balance_data(data_dict, seed=123):
+    np.random.seed(seed)
+    
+    y = data_dict['y']
+    places = data_dict['places']
 
-def load_waterbirds(reload: bool = False):
+    id_1 = np.where(y == 1)[0]
+    tgt_size_0 = len(id_1)
+
+    tgt_unconf_0 = int(tgt_size_0 * 0.05)
+    tgt_conf_0 = tgt_size_0 - tgt_unconf_0
+    
+    id_0_conf = np.where((y == 0) & (y == places))[0]
+    id_0_unconf = np.where((y == 0) & (y != places))[0]
+
+    sampled_0_conf = np.random.choice(id_0_conf, size=tgt_conf_0, replace=False)
+    sampled_0_unconf = np.random.choice(id_0_unconf, size=tgt_unconf_0, replace=False)
+          
+    balanced_id = np.concatenate([sampled_0_conf, sampled_0_unconf, id_1])
+    np.random.shuffle(balanced_id)
+    
+    return {key: array[balanced_id] for key, array in data_dict.items()}
+
+
+def load_waterbirds(reload: bool = False,balance:bool=True, seed:int =123):
   caches_exist = all([os.path.exists(f) for f in [TRAIN_NP_FILE, VAL_NP_FILE, TEST_NP_FILE]])
   if not caches_exist or reload:
     #print("One or more cache files not found. Preparing datasets...")
     prepare_waterbirds()
   
-  train_data = np.load(TRAIN_NP_FILE)
-  val_data = np.load(VAL_NP_FILE)
-  test_data = np.load(TEST_NP_FILE)
+  with np.load(TRAIN_NP_FILE) as data:
+    train_data = {key: data[key] for key in data.files}
+  with np.load(VAL_NP_FILE) as data:
+    val_data = {key: data[key] for key in data.files}
+  with np.load(TEST_NP_FILE) as data:
+    test_data = {key: data[key] for key in data.files}
+
+  # Balance the datasets
+  if balance: train_data = balance_data(train_data, seed=seed)
 
   data_pipeline = transforms.Compose([
     transforms.ToTensor(),
@@ -254,12 +360,12 @@ def load_waterbirds(reload: bool = False):
     transform=data_pipeline
   )
     
-  train_data.close()
-  val_data.close()
-  test_data.close()
   return train_dataset, val_dataset, test_dataset
 
 
 
 if __name__ == "__main__":
-  train_dataset, val_dataset, test_dataset = load_waterbirds(reload=True)
+  print_waterbirds_statistics()
+
+  # Reload data
+  #train_dataset, val_dataset, test_dataset = load_waterbirds(reload=True,balance=True, seed=123)
