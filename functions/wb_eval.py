@@ -318,6 +318,7 @@ def wb_log_plot(log: dict, filename) -> None:
     axes[2].set_title("Individual Group Accuracies")
 
   plt.tight_layout()
+  os.makedirs(LOG_DIR, exist_ok=True)
   path = os.path.join(LOG_DIR, f"{filename}.pdf")
 
   plt.savefig(path)
