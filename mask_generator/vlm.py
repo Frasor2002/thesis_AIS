@@ -6,14 +6,18 @@ from typing import Optional
 
 #from dotenv import load_dotenv
 
+# Qwen/Qwen3.6-27B
+# Qwen/Qwen3.6-35B-A3B
+# Qwen/Qwen2.5-VL-3B-Instruct
+# Qwen/Qwen3-VL-2B-Instruct
+# Qwen/Qwen3-VL-8B-Instruct
+
 class VLM:
   def __init__(self, model_id: str, device: str = "cuda"):
     self.model_id = model_id
     self.device = device
-    self.load_model()
-
-  def load_model(self):
-    print(f"Loading {self.model_id} on {self.device}...")
+    
+    print(f"Loading {self.model_id} on {self.device}")
 
     self.processor = AutoProcessor.from_pretrained(
       self.model_id, 
@@ -26,6 +30,7 @@ class VLM:
       device_map="auto",
       trust_remote_code=True
     ).eval()
+
   
   def detect_confounders(
     self,
@@ -33,4 +38,57 @@ class VLM:
     saliency: Optional[Tensor],
     label: str
   ):
-    pass
+    prompt_text = (
+      f"The target classification label is '{label}'. "
+      "Analyze the provided images. Find the confounders present listing them."
+      "Output the name of the confounder and its bounding box based strictly on the original image. "
+      "Format your answer EXACTLY as JSON: {\"confounder\": \"name\", \"bbox_2d\": [xmin, ymin, xmax, ymax]}"
+    )
+
+    content_list = []
+    images_to_process = []
+
+    if saliency is not None:
+      content_list.extend([
+        {"type": "text", "text": "Image 1 (Original):"},
+        {"type": "image"},
+        {"type": "text", "text": "Image 2 (Saliency Map):"},
+        {"type": "image"}
+      ])
+      images_to_process.extend([img, saliency])
+    else:
+      content_list.extend([
+          {"type": "image"}
+      ])
+      images_to_process.append(img)
+
+    content_list.append({"type": "text", "text": prompt_text})
+
+    messages = [
+      {
+        "role": "user",
+        "content": content_list,
+      }
+    ]
+
+    text = self.processor.apply_chat_template(messages, add_generation_prompt=True)
+        
+    inputs = self.processor(
+      text=[text], 
+      images=images_to_process, 
+      return_tensors="pt"
+    ).to(self.device)
+
+    with torch.no_grad():
+      generated_ids = self.model.generate(**inputs, max_new_tokens=256)
+
+    # 5. Trim prompt and decode
+    generated_ids_trimmed = [
+      out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
+    ]
+        
+    raw_response = self.processor.batch_decode(
+      generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
+    )[0]
+
+    return raw_response.strip()

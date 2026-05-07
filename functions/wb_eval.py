@@ -6,6 +6,7 @@ from torch.optim import Optimizer
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import os
+from functions.loss import load_loss_fun
 
 FUNCTION_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJ_DIR = os.path.dirname(FUNCTION_DIR)
@@ -160,7 +161,7 @@ def wb_eval(model: nn.Module, eval_loader: DataLoader, loss_fun: Callable, devic
 
 
 def wb_train(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer, loss_fun: Callable, 
-             n_epochs: int, eval_loader: Optional[DataLoader]=None, eval_loss_fun: Optional[Callable]=None,
+             n_epochs: int, eval_loader: Optional[DataLoader]=None,
              scheduler: Optional[Callable] = None, patience: int = 0, device: str = "cpu") -> tuple:
   """Train model for a number of epochs and log group accuracies using wb_eval.
   
@@ -195,9 +196,7 @@ def wb_train(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer, l
   patience_counter = 0
   loop = tqdm(range(n_epochs), desc="Training model")
 
-  # Fallback if no separate eval loss function is provided
-  if eval_loss_fun is None:
-    eval_loss_fun = loss_fun
+  eval_loss_fun = load_loss_fun("CrossEntropy")
 
   for epoch in loop:
     loop.set_description(f"Epoch {epoch + 1}/{n_epochs}")
