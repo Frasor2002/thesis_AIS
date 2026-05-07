@@ -5,7 +5,7 @@ from dataset.dataset import load_data, create_dataloaders, visualize_k_samples
 from functions.optimizer import load_optimizer
 from functions.loss import load_loss_fun
 from functions.functions import train_model, eval_model, save_checkpoint, load_checkpoint
-from functions.wb_eval import wb_eval
+from functions.wb_eval import wb_eval, wb_train, wb_log_plot
 from functions.xai import explain_dataset, evaluate_explainations
 from utils.utils import enable_reproducibility
 from functions.loss import load_loss_fun
@@ -31,7 +31,7 @@ def wb_test(seed, loss_name, lr, epoch, reg_rate):
   m_params = [params]*3
   train_loader, val_loader, test_loader = create_dataloaders(data, m_params)
 
-  log, dyn = train_model(
+  log, dyn = wb_train(
     model=model, 
     train_loader=train_loader, 
     optimizer=optim, 
@@ -48,6 +48,7 @@ def wb_test(seed, loss_name, lr, epoch, reg_rate):
   print("="*20,f"Test set Loss:{loss:.2f} | Acc:{acc:.2f}.","="*20)
   print(wga)
   print(gacc)
+  wb_log_plot(log, f"{seed}_{loss_name}")
 
 
 if __name__ == "__main__":
