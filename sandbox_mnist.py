@@ -67,10 +67,9 @@ if __name__ == "__main__":
   bs1 = ([0]*9 + [0.99]*1)
   all_bs = [bs7, bs5, bs3, bs1]
 
-  conf_type = ([0]*9 + [0.99]*1)
 
   # Check that global params also work with these br
-  for patch in [True, False]:
+  for patch in [False]:
     for conf_type in all_bs:
       # Compute the conf accuracy
       mnist_test(123, ce, mnist, 2, conf_type, patch, 1e-2, 10, 1e2)

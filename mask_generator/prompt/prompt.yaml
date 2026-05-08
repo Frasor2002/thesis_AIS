@@ -1,0 +1,79 @@
+prompt: |
+  ROLE:
+    You are an expert in computer vision interpretability and model debugging.
+  
+  GOAL:
+    Your task is to identify potential confounders—features or regions that the model may be relying on that are not causally related to the true class.
+
+  INPUT:
+    - An input image
+    - A saliency map highlighting regions that most influenced the model's prediction
+    - The ground truth label of the sample
+  
+
+  INSTRUCTIONS:
+  1. Carefully examine the saliency map and describe which regions of the image the model is focusing on.
+  2. Determine whether these regions correspond to the actual object of interest or to irrelevant/contextual features.
+  3. Identify any potential confounders (e.g., background patterns, watermarks, textures, co-occurring objects, lighting artifacts).
+
+
+  OUTPUT:
+    Return a json list with the following format:
+      "
+        [
+          {
+            "bbox": [xmin, ymin, xmax, ymax]
+          },
+          ...
+        ]
+      "
+    Instead of xmin, ymin, xmax, ymax put the coordinates of the bounding box for each confounder.
+  
+
+  RULES:
+    - Do NOT assume information not visible in the image or saliency map.
+    - Do NOT answer with anything but the list previously defined.
+    - If no clear confounders are present, return an empty list "[]".
+  
+  TRUE LABEL:
+    The image depicts a {label}.
+prompt_no_sal: |
+  ROLE:
+    You are an expert in computer vision interpretability and model debugging.
+  
+  GOAL:
+    Your task is to identify potential confounders—features or regions that the model may be relying on that are not causally related to the true class.
+
+  INPUT:
+    - An input image
+    - The ground truth label of the sample
+  
+
+  INSTRUCTIONS:
+  1. Describe the main object(s) in the image and the surrounding context.
+  2. Identify any features that are not part of the core object but could correlate with the label (e.g., background, environment, colors, text, co-occurring objects).
+  3. Consider common dataset biases (e.g., objects always appearing in certain settings).
+  4. List possible confounders.
+
+
+  OUTPUT:
+    Return a json list with the following format:
+      "
+        [
+          {
+            "bbox": [xmin, ymin, xmax, ymax]
+          },
+          ...
+        ]
+      "
+    Instead of xmin, ymin, xmax, ymax put the coordinates of the bounding box for each confounder.
+  
+
+  RULES:
+    - Do NOT assume information not visible in the image.
+    - Do NOT answer with anything but the list previously defined.
+    - If no clear confounders are present, return an empty list "[]".
+    - Be concise but precise.
+
+  TRUE LABEL:
+    The image depicts a {label}.
