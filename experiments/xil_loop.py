@@ -71,7 +71,7 @@ def run_mnist_xil(
     step_size=step,
     starting_query=initial_query,
     rrr_reg_rate=1e2,
-    log_filename=f"MNIST_{seed}_{sampling_strategy}_{conf_type}_{model_name}",
+    log_filename=f"MNIST_{seed}_{sampling_strategy}_{bias_ratio}_{model_name}",
     device=device
   ) 
   return log
@@ -138,7 +138,7 @@ def run_fmnist_xil(
     step_size=step,
     starting_query=initial_query,
     rrr_reg_rate=1e2,
-    log_filename=f"FMNIST_{seed}_{sampling_strategy}_{conf_type}_{model_name}",
+    log_filename=f"FMNIST_{seed}_{sampling_strategy}_{str(bias_ratio)}_{model_name}",
     device=device
   ) 
   return log

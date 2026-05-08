@@ -112,7 +112,7 @@ def get_sampling_distribution(sampling_pool: list, simplicity: dict, dataset: An
   classes = np.array(classes)
   minority_ratios = np.array(minority_ratios)
   
-  # 1. Normalize the ratios to a [0, 1] scale
+  # Normalize the ratios to a [0, 1] scale
   min_r = np.min(minority_ratios)
   max_r = np.max(minority_ratios)
   
@@ -171,8 +171,8 @@ def run_class_selector(seed, model_name, dataset, bias_ratio, conf_type, train_p
 
   sampling_pool = list(range(len(train_set)))
 
-  #if dataset == "DecoyMNIST": min_ratio = 0.0125
-  #else: min_ratio=0.03
+  if dataset == "DecoyMNIST": t = 0.1
+  else: t=0.05
     
 # Generate the probability distribution
   class_distribution = get_sampling_distribution(
@@ -182,7 +182,7 @@ def run_class_selector(seed, model_name, dataset, bias_ratio, conf_type, train_p
     seed=seed,
     data_name=dataset,
     bs=str(bias_ratio),
-    temperature=0.025 # Adjust this to make sampling more/less aggressive 
+    temperature=t 
   )
       
   print("="*20, f"Class Sampling Distribution:\n", class_distribution, "="*20)
