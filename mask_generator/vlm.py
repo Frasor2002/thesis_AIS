@@ -1,10 +1,10 @@
 import torch
-from transformers import AutoProcessor, AutoModelForVision2Seq
+from transformers import AutoProcessor, AutoModelForVision2Seq, BitsAndBytesConfig
 from typing import Dict, Any, Union
 from torch import Tensor
 from typing import Optional
-
-#from dotenv import load_dotenv
+from dotenv import load_dotenv
+from mask_generator.utils import login_to_hub
 
 # Qwen/Qwen3.6-27B
 # Qwen/Qwen3.6-35B-A3B
@@ -13,11 +13,10 @@ from typing import Optional
 # Qwen/Qwen3-VL-8B-Instruct
 
 class VLM:
-  def __init__(self, model_id: str, device: str = "cuda"):
+  def __init__(self, model_id: str):
     self.model_id = model_id
-    self.device = device
     
-    print(f"Loading {self.model_id} on {self.device}")
+    print(f"Loading {self.model_id}")
 
     self.processor = AutoProcessor.from_pretrained(
       self.model_id, 
@@ -30,6 +29,10 @@ class VLM:
       device_map="auto",
       trust_remote_code=True
     ).eval()
+
+  
+  def detect_confounders_no_sal():
+    pass
 
   
   def detect_confounders(
@@ -92,3 +95,13 @@ class VLM:
     )[0]
 
     return raw_response.strip()
+
+
+
+def load_VLM():
+  load_dotenv()
+  login_to_hub()
+
+  
+
+  pass

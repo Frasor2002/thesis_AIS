@@ -160,7 +160,7 @@ def run_wb_xil(
   model = load_model("ResNet", model_name="resnet50", n_classes=2, pretrained=True, device=device)
   # Load weights for all successive iterations
   load_checkpoint(RESET_CHECKPOINT, model, device)
-  optim = load_optimizer("SGD", model.parameters(), lr=1e-2, weight_decay=0)
+  optim = load_optimizer("SGD", model.parameters(), lr=1e-1, weight_decay=0)
   loss = load_loss_fun("CrossEntropy")
 
   train_set, val_set, test_set = load_data(name="Waterbirds", reload=False, balance=True, seed=seed)
@@ -187,7 +187,7 @@ def run_wb_xil(
   log = xil_loop(
     train_data=train_set,
     model=model, 
-    lr=1e-2,
+    lr=1e-1,
     epochs=100,
     patience=3,
     sampling_strategy=sampling_strategy,
@@ -197,7 +197,7 @@ def run_wb_xil(
     tr_dynamics=dyn,
     step_size=step,
     starting_query=initial_query,
-    rrr_reg_rate=1e1,
+    rrr_reg_rate=1e2,
     log_filename=f"{sampling_strategy}_Waterbirds_{seed}",
     device=device
   )
