@@ -1,4 +1,3 @@
-huggingface_hub==1.1.5
 ipywidgets==8.1.8
 jupyterlab_widgets==3.0.16
 matplotlib==3.10.7
