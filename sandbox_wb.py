@@ -50,6 +50,11 @@ def wb_test(seed, loss_name, lr, epoch, reg_rate):
   print(gacc)
   wb_log_plot(log, f"{seed}_{loss_name}")
 
+  all_attr, _ = explain_dataset(train_loader, model, device)
+  exp_penalty, class_penalty = evaluate_explainations(all_attr, train_set.masks, train_set.y)
+  print(exp_penalty)
+  print(class_penalty)
+
 
 if __name__ == "__main__":
   ce = "CrossEntropy"

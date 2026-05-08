@@ -51,6 +51,11 @@ def mnist_test(seed, loss_name, dataset,variation, bias_ratio, patch, lr, epoch,
   loss, acc = eval_model(model, test_loader, eval_loss, device)
   print("="*20,f"Test set Loss:{loss:.2f} | Acc:{acc:.2f}.","="*20)
 
+  all_attr, _ = explain_dataset(train_loader, model, device)
+  exp_penalty, class_penalty = evaluate_explainations(all_attr, train_set.masks, train_set.y)
+  print(exp_penalty)
+  print(class_penalty)
+
 if __name__ == "__main__":
   ce = "CrossEntropy"
   rrr = "RRR"
