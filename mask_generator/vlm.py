@@ -1,6 +1,5 @@
 import torch
 from transformers import AutoProcessor, BitsAndBytesConfig, Qwen3VLForConditionalGeneration
-from qwen_vl_utils import process_vision_info
 from typing import Dict, Any, Union
 from torch import Tensor
 from torchvision.transforms.functional import to_pil_image
@@ -9,6 +8,8 @@ from dotenv import load_dotenv
 from mask_generator.utils import login_to_hub
 import os
 import yaml
+import json
+import re
 
 # Qwen/Qwen3.6-27B
 # Qwen/Qwen3-VL-2B-Instruct
@@ -19,6 +20,45 @@ import yaml
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 PROMPT_PATH = os.path.join(CURR_DIR, "prompt", "prompt.yaml")
+
+
+
+def parse_bboxes(output_text: str):
+  try:
+    match = re.search(r"\[.*\]", output_text, re.DOTALL)
+    if match is None: return []
+
+    json_str = match.group(0)
+    data = json.loads(json_str)
+
+    bboxes = []
+    for item in data:
+      if "bbox" in item and len(item["bbox"]) == 4:
+        bboxes.append(item["bbox"])
+
+    return bboxes
+  except Exception as e:
+    print("Parsing failed:", e)
+    return []
+  
+def bboxes_to_mask(bboxes, image_shape):
+  H, W = image_shape
+  mask = torch.zeros((H, W), dtype=torch.uint8)
+
+  for xmin, ymin, xmax, ymax in bboxes:
+    xmin = int(xmin)
+    ymin = int(ymin)
+    xmax = int(xmax)
+    ymax = int(ymax)
+
+    xmin = max(0, min(xmin, W))
+    xmax = max(0, min(xmax, W))
+    ymin = max(0, min(ymin, H))
+    ymax = max(0, min(ymax, H))
+
+    mask[ymin:ymax, xmin:xmax] = 1
+
+  return mask
 
 # Currently only compatible with Qwen3
 #TODO add compatibility to other models
@@ -36,8 +76,8 @@ class VLM:
     # if "Qwen3" in model_id:
     self.model = Qwen3VLForConditionalGeneration.from_pretrained(
       model_id,
-      dtype=torch.bfloat16,
-      attn_implementation="flash_attention_2",
+      torch_dtype=torch.bfloat16,
+      #attn_implementation="flash_attention_2",
       device_map="auto"
     ).eval()
     
@@ -61,7 +101,6 @@ class VLM:
   ):
     prompt_dict = self._load_prompt()
 
-
     images_to_process = [img]
     if saliency is not None:
       images_to_process.append(saliency)
@@ -70,7 +109,7 @@ class VLM:
       prompt_template = prompt_dict["prompt_not_sal"]
     
     # Add the label to the prompt
-    prompt_text = prompt_template.format(label=label)
+    prompt_text = prompt_template.replace("{label}", label)
 
     # Build the message content list
     content = []
@@ -100,7 +139,10 @@ class VLM:
       generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
     )[0].strip()
 
-    return output_text
+    bboxes = parse_bboxes(output_text)
+    prediction = bboxes_to_mask(bboxes, img.shape[-2:])
+
+    return prediction
 
 
 

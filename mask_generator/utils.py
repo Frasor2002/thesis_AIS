@@ -1,8 +1,60 @@
 from huggingface_hub import login, whoami
 import os
 import torch
+import matplotlib.pyplot as plt
+import numpy as np
 
 #TODO from bb to mask
+
+
+def save_visualization(image, saliency, pred_mask, gt_mask, save_path, sample_id="", class_label=""):
+  # Ensure the directory exists
+  os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    
+  fig, axes = plt.subplots(1, 4, figsize=(20, 5))
+    
+  def format_for_plotting(tensor):
+    if hasattr(tensor, 'detach'): tensor = tensor.detach().cpu().numpy()
+    if isinstance(tensor, np.ndarray) and tensor.ndim == 3 and tensor.shape[0] in [1, 3]:
+      tensor = np.transpose(tensor, (1, 2, 0))
+    if isinstance(tensor, np.ndarray):
+      tensor = np.squeeze(tensor)
+    return tensor
+
+  # Format all inputs
+  img_viz = format_for_plotting(image)
+  sal_viz = format_for_plotting(saliency)
+  pred_viz = format_for_plotting(pred_mask)
+  gt_viz = format_for_plotting(gt_mask)
+
+  # Input image
+  axes[0].imshow(img_viz, cmap='gray' if img_viz.ndim == 2 else None)
+  axes[0].set_title("Original Image", fontsize=14)
+  axes[0].axis('off')
+    
+  # Saliency map
+  axes[1].imshow(sal_viz, cmap='jet')
+  axes[1].set_title("Saliency Map", fontsize=14)
+  axes[1].axis('off')
+    
+  # Predicted Mask
+  axes[2].imshow(pred_viz, cmap='gray')
+  axes[2].set_title("Predicted Mask", fontsize=14)
+  axes[2].axis('off')
+    
+  # Ground Truth Mask
+  axes[3].imshow(gt_viz, cmap='gray')
+  axes[3].set_title("Ground Truth Mask", fontsize=14)
+  axes[3].axis('off')
+    
+  # Optional Main Title
+  if sample_id or class_label:
+    plt.suptitle(f"Sample: {sample_id} | Class: {class_label}", fontsize=16)
+    
+  plt.tight_layout()
+  plt.savefig(save_path)
+  plt.close(fig)
+
 
 def evaluate_masks(y_true: torch.Tensor , y_pred: torch.Tensor) -> dict:
   y_true = y_true.bool()

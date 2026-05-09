@@ -1,10 +1,25 @@
 from dataset.dataset import load_data
 from mask_generator.vlm import load_VLM
 from mask_generator.saliency import load_mnist_saliency, load_wb_saliency
+from mask_generator.utils import save_visualization, evaluate_masks
 import time
 
 
 def test_mnist(seed, device, dataset):
+  fmnist_to_string = {
+    0: "t-shirt/top",
+    1: "trouser",
+    2: "pullover",
+    3: "dress",
+    4: "coat",
+    5: "sandal",
+    6: "shirt",
+    7: "sneaker",
+    8: "bag",
+    9: "ankle boot"
+  }
+
+
   train_set, _, _ = load_data(
     dataset, 
     seed=seed, 
@@ -21,23 +36,31 @@ def test_mnist(seed, device, dataset):
     id, img, y, mask = train_set[i]
     sal = saliency_dict[id]
 
+    if dataset == "DecoyMNIST": lab = str(y)
+    else: fmnist_to_string[y]
+
     start_time = time.time()
 
-    output = vlm.detect_confounders(img, saliency=sal, label=y)
+    output = vlm.detect_confounders(img, saliency=sal, label=lab)
 
     end_time = time.time()
     inference_time = end_time - start_time
 
     print(f"Sample: {id}, Class {y}")
-    print(f"Confounded {sum(mask) > 0}")
+    print(f"Confounded {mask.sum() > 1}")
     print(f"Time for 1 sample {inference_time}")
-    print(output)
+    save_visualization(img, sal, output, mask, f"{dataset}_{i}.pdf",id, lab)
+    print(evaluate_masks(mask, output))
 
 
 def test_wb(seed, device):
   train_set, _, _ = load_data(
     "Waterbirds", reload=False, balance=True, seed=seed
   )
+
+  lab_to_string = {
+    0: "waterbird", 1: "landbird"
+  }
 
   saliency_dict = load_wb_saliency(seed, device)
 
@@ -46,15 +69,19 @@ def test_wb(seed, device):
     id, img, y, mask = train_set[i]
     sal = saliency_dict[id]
 
+    lab = lab_to_string[y]
+
     start_time = time.time()
 
-    output = vlm.detect_confounders(img, saliency=sal, label=y)
+    output = vlm.detect_confounders(img, saliency=sal, label=lab)
 
     end_time = time.time()
     inference_time = end_time - start_time
 
     print(f"Sample: {id}, Class {y}")
-    print(f"Confounded {sum(mask) > 0}")
+    print(f"Confounded {mask.sum() > 1}")
     print(f"Time for 1 sample {inference_time}")
-    print(output)
+    save_visualization(img, sal, output, mask, f"wb_{i}.pdf",id, lab)
+    print(evaluate_masks(mask, output))
+
 

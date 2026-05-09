@@ -16,3 +16,4 @@ transformers==5.8.0
 huggingface_hub==1.14.0
 dotenv==0.9.9
 PyYAML==6.0.3
+accelerate==1.13.0

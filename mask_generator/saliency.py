@@ -57,7 +57,7 @@ def prepare_mnist_saliency(seed, device, dataset):
 def load_mnist_saliency(seed, device, dataset):
   load_path = os.path.join(SALIENCY_PATH, f"{dataset}_sal.pth")
   if not os.path.exists(load_path):
-    prepare_wb_saliency(seed, device)
+    prepare_mnist_saliency(seed, device, dataset)
     
   saliency_dict = torch.load(load_path, map_location=device, weights_only=False)
   print(f"Loaded {len(saliency_dict)} saliency maps from '{load_path}'")
