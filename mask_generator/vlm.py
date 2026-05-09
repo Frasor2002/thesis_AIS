@@ -100,6 +100,8 @@ class VLM:
     saliency: Optional[Tensor] = None,
   ):
     prompt_dict = self._load_prompt()
+    #to_pil_image(img).save("pilled.png")
+    #to_pil_image(saliency).save("sal_pilled.png")
 
     images_to_process = [img]
     if saliency is not None:
@@ -138,8 +140,9 @@ class VLM:
     output_text = self.processor.batch_decode(
       generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
     )[0].strip()
-
+    print(f"Output txt: {output_text}")
     bboxes = parse_bboxes(output_text)
+    print(f"bboxes: {bboxes} | Img shape: {img.shape[-2:]}")
     prediction = bboxes_to_mask(bboxes, img.shape[-2:])
 
     return prediction

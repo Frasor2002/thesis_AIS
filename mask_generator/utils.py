@@ -4,12 +4,12 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 
-#TODO from bb to mask
-
+CURR_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_PATH = os.path.join(CURR_DIR, "log")
 
 def save_visualization(image, saliency, pred_mask, gt_mask, save_path, sample_id="", class_label=""):
   # Ensure the directory exists
-  os.makedirs(os.path.dirname(save_path), exist_ok=True)
+  os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
     
   fig, axes = plt.subplots(1, 4, figsize=(20, 5))
     
@@ -52,7 +52,8 @@ def save_visualization(image, saliency, pred_mask, gt_mask, save_path, sample_id
     plt.suptitle(f"Sample: {sample_id} | Class: {class_label}", fontsize=16)
     
   plt.tight_layout()
-  plt.savefig(save_path)
+  path = os.path.join(LOG_PATH, save_path)
+  plt.savefig(path)
   plt.close(fig)
 
 
