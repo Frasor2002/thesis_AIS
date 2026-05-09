@@ -5,7 +5,7 @@ from mask_generator.utils import save_visualization, evaluate_masks
 import time
 
 
-def test_mnist(seed, device, dataset):
+def test_mnist(model_id, seed, device, dataset):
   fmnist_to_string = {
     0: "t-shirt/top",
     1: "trouser",
@@ -31,7 +31,7 @@ def test_mnist(seed, device, dataset):
 
   saliency_dict = load_mnist_saliency(seed, device, dataset)
 
-  vlm = load_VLM("Qwen/Qwen3-VL-2B-Instruct")
+  vlm = load_VLM(model_id)
   for i in range(3):
     id, img, y, mask = train_set[i]
     sal = saliency_dict[id]
@@ -53,7 +53,7 @@ def test_mnist(seed, device, dataset):
     print(evaluate_masks(mask, output))
 
 
-def test_wb(seed, device):
+def test_wb(model_id, seed, device):
   train_set, _, _ = load_data(
     "Waterbirds", reload=False, balance=True, seed=seed
   )
@@ -64,7 +64,7 @@ def test_wb(seed, device):
 
   saliency_dict = load_wb_saliency(seed, device)
 
-  vlm = load_VLM("Qwen/Qwen3-VL-2B-Instruct")
+  vlm = load_VLM(model_id)
   for i in range(3):
     id, img, y, mask = train_set[i]
     sal = saliency_dict[id]

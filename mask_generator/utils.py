@@ -9,7 +9,7 @@ LOG_PATH = os.path.join(CURR_DIR, "log")
 
 def save_visualization(image, saliency, pred_mask, gt_mask, save_path, sample_id="", class_label=""):
   # Ensure the directory exists
-  os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+  os.makedirs(LOG_PATH, exist_ok=True)
     
   fig, axes = plt.subplots(1, 4, figsize=(20, 5))
     
@@ -19,6 +19,8 @@ def save_visualization(image, saliency, pred_mask, gt_mask, save_path, sample_id
       tensor = np.transpose(tensor, (1, 2, 0))
     if isinstance(tensor, np.ndarray):
       tensor = np.squeeze(tensor)
+    # Correct color normalization
+    tensor = np.clip(tensor, 0.0, 1.0)
     return tensor
 
   # Format all inputs
