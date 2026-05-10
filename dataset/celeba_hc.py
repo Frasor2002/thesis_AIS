@@ -14,7 +14,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(BASE_DIR, "data")
 CELEBA_PATH = os.path.join(DATA_PATH, "celeba", "CelebAMask-HQ")
 IMG_PATH = os.path.join(CELEBA_PATH, "CelebA-HQ-img")
-MASK_PATH = os.path.join(CELEBA_PATH, "CelebA-HQ-mask-anno")
+MASK_PATH = os.path.join(CELEBA_PATH, "CelebAMask-HQ-mask-anno")
 ATTR_ANNO_PATH = os.path.join(CELEBA_PATH, "CelebAMask-HQ-attribute-anno.txt")
 METADATA_PATH = os.path.join(CELEBA_PATH, "metadata.csv")
 
@@ -34,19 +34,34 @@ def print_statistics():
   print(metadata[metadata['split'] != -1].groupby(['split', 'y', 'gender']).size())
 
 def create_metadata():
+  def check_mask_exists(img_filename):
+    """Helper to verify if the physical mask file exists on disk."""
+    img_id = int(img_filename.split('.')[0])
+    mask_filename = f"{img_id:05d}_hair.png"
+    mask_folder = str(img_id // 2000)
+    mask_path = os.path.join(MASK_PATH, mask_folder, mask_filename)
+    return os.path.exists(mask_path)
+
   if not os.path.exists(ATTR_ANNO_PATH):
     raise FileNotFoundError(f"Attribute annotations not found at {ATTR_ANNO_PATH}")
   
-  attr_anno = pd.read_csv(ATTR_ANNO_PATH, delim_whitespace=True, skiprows=1)
-
+  attr_anno = pd.read_csv(ATTR_ANNO_PATH, sep=r'\s+', skiprows=1)
+  
+  # Remove all imgs with no hair masks to solve mistakes
+  
   attr_anno = attr_anno.reset_index()
   attr_anno = attr_anno.rename(columns={'index': 'img_filename'})
+
+  attr_anno['has_mask'] = attr_anno['img_filename'].apply(check_mask_exists)
+  attr_anno = attr_anno[attr_anno['has_mask']].copy()
+
+
   attr_anno['img_id'] = attr_anno['img_filename'].apply(lambda x: int(x.split('.')[0]))
   attr_anno['y'] = (attr_anno['Blond_Hair'] == 1).astype(int)
   attr_anno['gender'] = (attr_anno['Male'] == -1).astype(int)
 
-  print("--- Initial Annotation Head ---")
-  print(attr_anno[['img_filename', 'y', 'gender']].head(10))
+  #print("--- Initial Annotation Head ---")
+  #print(attr_anno[['img_filename', 'y', 'gender']].head(10))
 
   attr_anno['split'] = -1  # Default to -1 (discarded)
     
@@ -58,8 +73,8 @@ def create_metadata():
     '00': attr_anno[(attr_anno['y'] == 0) & (attr_anno['gender'] == 0)].index.values,
     '01': attr_anno[(attr_anno['y'] == 0) & (attr_anno['gender'] == 1)].index.values 
   }
-  for v in subgroups.values():
-    print(len(v))
+  for k, v in subgroups.items():
+    print(f"Group {k}: {len(v)}")
         
   # in total
   # 11: 4911
@@ -112,6 +127,9 @@ def create_metadata():
 
 
   final_df = attr_anno[['img_filename', 'img_id', 'y', 'split', 'gender']]
+  # Unused images wont be loaded
+  final_df = final_df[final_df['split'] != -1]
+  
   # Save to disk
   os.makedirs(CELEBA_PATH, exist_ok=True)
   final_df.to_csv(METADATA_PATH, index=False)
@@ -120,10 +138,11 @@ def create_metadata():
 
 
 def prepare_data(seed):
-  if not os.path.exists(METADATA_PATH): create_metadata()
-  train_id, train_x, train_y, train_mask, train_places = [], [], [], [], []
-  val_id, val_x, val_y, val_mask, val_places = [], [], [], [], []
-  test_id, test_x, test_y, test_mask, test_places = [], [], [], [], []
+  #if not os.path.exists(METADATA_PATH): create_metadata()
+  create_metadata()
+  train_id, train_x, train_y, train_mask, train_gender = [], [], [], [], []
+  val_id, val_x, val_y, val_mask, val_gender = [], [], [], [], []
+  test_id, test_x, test_y, test_mask, test_gender = [], [], [], [], []
 
 
 
@@ -136,7 +155,7 @@ def prepare_data(seed):
     y = row.y
     split = row.split
     gender = row.gender
-    mask_filename = f"{img_id:04d}_hair.png"
+    mask_filename = f"{img_id:05d}_hair.png"
     mask_folder = str(img_id // 2000)
     mask_path = os.path.join(MASK_PATH, mask_folder, mask_filename)
 
@@ -145,12 +164,25 @@ def prepare_data(seed):
       img = img.convert("RGB")
       # img = img.resize(IMG_SHAPE, Image.Resampling.BILINEAR)
       img = np.array(img)
-    print(img.shape)
+    #print(img.shape)
     mask = np.zeros(img.shape)
 
     if split == 0:
       # Train
-      pass
+      train_id.append(img_id)
+      train_x.append(img)
+      train_y.append(y)
+      train_gender.append(gender)
+
+      with Image.open(mask_path) as mask:
+          mask = mask.convert("L")  
+          mask = np.array(mask)
+    
+      # Make mask binary and invert it
+      mask = (mask > 0).astype(np.uint8)
+      mask = 1 - mask
+      train_mask.append(mask)
+      
     elif split == 1:
       # Val
       pass
@@ -175,6 +207,6 @@ def load_data(seed, reload):
 
 
 if __name__ == "__main__":
-  prepare_data(123)
-  #print_statistics()
-  
+  #prepare_data(123)
+  create_metadata()
+  print_statistics()
