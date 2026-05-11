@@ -30,7 +30,7 @@ def save_visualization(image, saliency, pred_mask, gt_mask, save_path, sample_id
   gt_viz = format_for_plotting(gt_mask)
 
   # Input image
-  axes[0].imshow(img_viz, cmap='gray' if img_viz.ndim == 2 else None)
+  axes[0].imshow(img_viz, cmap='binary' if img_viz.ndim == 2 else None)
   axes[0].set_title("Original Image", fontsize=14)
   axes[0].axis('off')
     
@@ -40,12 +40,12 @@ def save_visualization(image, saliency, pred_mask, gt_mask, save_path, sample_id
   axes[1].axis('off')
     
   # Predicted Mask
-  axes[2].imshow(pred_viz, cmap='gray')
+  axes[2].imshow(pred_viz, cmap='binary')
   axes[2].set_title("Predicted Mask", fontsize=14)
   axes[2].axis('off')
     
   # Ground Truth Mask
-  axes[3].imshow(gt_viz, cmap='gray')
+  axes[3].imshow(gt_viz, cmap='binary')
   axes[3].set_title("Ground Truth Mask", fontsize=14)
   axes[3].axis('off')
     

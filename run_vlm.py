@@ -3,7 +3,7 @@ from experiments.utils import enable_reproducibility
 import torch
 
 SEED = 123
-MODEL_ID = "Qwen/Qwen3-VL-2B-Instruct"
+MODEL_ID = "Qwen/Qwen3-VL-8B-Instruct"
 
 if __name__ == "__main__":
   use_cuda = torch.cuda.is_available()

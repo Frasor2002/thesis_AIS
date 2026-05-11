@@ -46,11 +46,13 @@ def bboxes_to_mask(bboxes, image_shape):
   mask = torch.zeros((H, W), dtype=torch.uint8)
 
   for xmin, ymin, xmax, ymax in bboxes:
-    xmin = int(xmin)
-    ymin = int(ymin)
-    xmax = int(xmax)
-    ymax = int(ymax)
+    # Move images from 0-1000 range to the actual image size
+    xmin = int((xmin / 1000.0) * W)
+    ymin = int((ymin / 1000.0) * H)
+    xmax = int((xmax / 1000.0) * W)
+    ymax = int((ymax / 1000.0) * H)
 
+    # Clamp to make them stay inside bounds
     xmin = max(0, min(xmin, W))
     xmax = max(0, min(xmax, W))
     ymin = max(0, min(ymin, H))
