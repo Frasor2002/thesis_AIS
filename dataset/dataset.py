@@ -3,6 +3,7 @@ from typing import List
 from dataset.decoy_mnist import load_decoyMNIST
 from dataset.decoy_fmnist import load_decoyFashionMNIST
 from dataset.waterbirds import load_waterbirds
+from dataset.celeba_hc import load_celebahc
 from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
@@ -72,7 +73,8 @@ def load_data(name: str, **kwargs: Any):
   datasets = {
     "DecoyMNIST": load_decoyMNIST,
     "DecoyFashionMNIST": load_decoyFashionMNIST,
-    "Waterbirds": load_waterbirds
+    "Waterbirds": load_waterbirds,
+    "CelebAHC": load_celebahc
   }
   
   if name not in datasets.keys():

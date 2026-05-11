@@ -59,7 +59,7 @@ def test_wb(model_id, seed, device):
   )
 
   lab_to_string = {
-    0: "waterbird", 1: "landbird"
+    1: "waterbird", 0: "landbird"
   }
 
   saliency_dict = load_wb_saliency(seed, device)
