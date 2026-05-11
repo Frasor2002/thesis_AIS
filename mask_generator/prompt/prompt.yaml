@@ -33,7 +33,6 @@ prompt: |
   RULES:
     - Do NOT assume information not visible in the image or saliency map.
     - Do NOT answer with anything but the list previously defined.
-    - If no clear confounders are present, return an empty list "[]".
   
   TRUE LABEL:
     The image depicts a {label}.
@@ -72,8 +71,6 @@ prompt_no_sal: |
   RULES:
     - Do NOT assume information not visible in the image.
     - Do NOT answer with anything but the list previously defined.
-    - If no clear confounders are present, return an empty list "[]".
-    - Be concise but precise.
 
   TRUE LABEL:
     The image depicts a {label}.

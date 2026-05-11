@@ -37,7 +37,7 @@ def test_mnist(model_id, seed, device, dataset):
     sal = saliency_dict[id]
 
     if dataset == "DecoyMNIST": lab = str(y)
-    else: fmnist_to_string[y]
+    else: lab = fmnist_to_string[y]
 
     start_time = time.time()
 
