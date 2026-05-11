@@ -259,8 +259,8 @@ def prepare_celebahc():
           mask = mask.convert("L")  
           mask = np.array(mask)
         # Invert mask
-        #mask = (mask > 0).astype(np.uint8)
-        #mask = 1 - mask
+        mask = (mask > 0).astype(np.uint8)
+        mask = 1 - mask
         count_a += 1
 
       train_mask.append(mask)
