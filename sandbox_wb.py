@@ -63,6 +63,10 @@ if __name__ == "__main__":
   wb_test(123, ce, 1e-1, 100, 1e2)
   wb_test(123, rrr, 1e-1, 100, 1e2)
 
+  # Different lr
+  wb_test(123, ce, 1e-2, 100, 1e2)
+  wb_test(123, rrr, 1e-2, 100, 1e2)
+
   # Try different RRR configuration to find the best one
   #wb_test(123, rrr, 1e-2, 100, 1) #89
   #wb_test(123, rrr, 1e-2, 100, 1e1) #90

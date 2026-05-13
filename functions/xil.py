@@ -1,3 +1,4 @@
+from gradio import update
 from torch import nn
 import torch
 from torch.utils.data.dataset import Dataset
@@ -13,7 +14,8 @@ import numpy as np
 import logging
 import os
 import matplotlib.pyplot as plt
-from collections import Counter
+from collections import Counter, defaultdict
+from sklearn.cluster import KMeans
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG_DIR = os.path.join(BASE_DIR, "log", "xil")
@@ -110,7 +112,10 @@ def xil_loop(
   starting_query:int=0,
   rrr_reg_rate:float=1, 
   log_filename: str= "xil_log",
-  device:str="cpu") -> dict:
+  device:str="cpu",
+  dynamic_simplicity:bool = False,
+  seed=123,
+  temperature=0.1) -> dict:
   """XIL loop to deconfound a model.
   Args:
     train_data (Any): traning dataset.
@@ -152,7 +157,9 @@ def xil_loop(
       sampling_pool=all_positional_ids,
       k=starting_query,
       simplicity=simplicity,
-      dataset=train_data
+      dataset=train_data,
+      seed=seed,
+      temperature=temperature
     )
     # Update explained samples
     for pos in chosen_positions:
@@ -164,7 +171,7 @@ def xil_loop(
   loop = tqdm(total=budget,initial=starting_query, desc="XIL Loop")
 
   exp_penalty = 1
-  while query_count < budget or exp_penalty == 0:
+  while query_count < budget:
 
     sampling_pool = list(set(all_positional_ids) - set(explained_ids))
     if len(sampling_pool) == 0:
@@ -178,7 +185,9 @@ def xil_loop(
       sampling_pool=sampling_pool,
       k=current_step,
       simplicity=simplicity,
-      dataset=train_data
+      dataset=train_data,
+      seed=seed,
+      temperature=temperature
     )
 
     tot_conf, cls_counts, cls_conf_counts = log_sample_distribution(chosen_positions, train_data, logger)
@@ -200,7 +209,11 @@ def xil_loop(
     eval_loss = load_loss_fun("CrossEntropy")
     train_loader = DataLoader(xil_train_dataset, batch_size=32)
 
-    _, _ = train_model(model, train_loader, optim, train_loss, epochs, val_loader, patience=patience, device=device)
+    _, updated_dyns = train_model(model, train_loader, optim, train_loss, epochs, val_loader, patience=patience, device=device)
+
+    if dynamic_simplicity:
+      simplicity = compute_simplicity(updated_dyns, metric="MP")
+      logger.info("Simplicity metric recomputed using latest training dynamics.")
 
     loss, acc = eval_model(model, test_loader, eval_loss, device)
     logger.info(f"{query_count}/{budget}.\nTest acc= {acc:.2f} | loss={loss:.2f}")
@@ -228,7 +241,8 @@ def xil_sampling(strategy: str, **kwargs) -> list:
   strategy_map = {
     "random": random_sampling,
     "simplicity": simplicity_sampling,
-    "simplicity_class": simplicity_class_split
+    "simplicity_class": simplicity_class_split,
+    "simplicity_class_unsup": simplicity_class_unsup
   }
 
   if strategy not in strategy_map.keys():
@@ -250,7 +264,7 @@ def random_sampling(sampling_pool:list, k:int, **kwargs) -> list:
   chosen = random.sample(sampling_pool,k)
   return chosen
 
-def simplicity_sampling(sampling_pool:list, simplicity: dict, dataset:Any, k:int) -> list:
+def simplicity_sampling(sampling_pool:list, simplicity: dict, dataset:Any, k:int, **kwargs) -> list:
   """Sample k samples by taking simplest ones.
   Args:
     sampling_pool (list): list of available sample positions.
@@ -345,7 +359,7 @@ def compute_auc_roc(separation_list: ArrayLike, is_confounded: ArrayLike, labels
     "class": class_auc
   }
 
-def simplicity_class_split(sampling_pool:list, simplicity: dict, dataset:Any, k:int) -> list:
+def simplicity_class_split(sampling_pool:list, simplicity: dict, dataset:Any, k:int, **kwargs) -> list:
   """Class simplicity sampling."""
   separation_list = []
   is_confounded = []
@@ -426,3 +440,124 @@ def simplicity_class_split(sampling_pool:list, simplicity: dict, dataset:Any, k:
     chosen.extend(fallback_pool[:k - len(chosen)])
         
   return chosen
+
+
+
+def get_sampling_distribution(sampling_pool: list, simplicity: dict, dataset: Any, seed:int=123, temperature: float = 0.05) -> dict:
+    """
+    Computes minority ratios for each class and returns a probability distribution.
+    Lower minority ratios yield higher sampling probabilities.
+    """
+    class_simplicity = defaultdict(list)
+    
+    # Group simplicity by class
+    for internal_idx in sampling_pool:
+      unique_id, _, y, _ = dataset[internal_idx]
+      class_simplicity[int(y)].append(simplicity[unique_id])
+        
+    plot_data = []
+    classes = []
+    minority_ratios = []
+    
+    for cls, scores in class_simplicity.items():
+      scores_arr = np.array(scores).reshape(-1, 1)
+        
+      if len(scores_arr) < 2:
+        continue
+            
+      # Apply KMEANS with k=2
+      kmeans = KMeans(n_clusters=2, random_state=seed, n_init=10).fit(scores_arr)
+        
+      # Compute gap
+      centers = kmeans.cluster_centers_.flatten()
+      gap = abs(centers[0] - centers[1])
+        
+      # Minority ratio
+      labels = kmeans.labels_
+      cluster_counts = np.bincount(labels)
+      minority_ratio = np.min(cluster_counts) / len(labels)
+        
+      plot_data.append((cls, gap, minority_ratio))
+      classes.append(cls)
+      minority_ratios.append(minority_ratio)
+        
+    if not classes:
+      return {}
+
+    classes = np.array(classes)
+    minority_ratios = np.array(minority_ratios)
+    
+    # Normalize the ratios to a [0, 1] scale
+    min_r = np.min(minority_ratios)
+    max_r = np.max(minority_ratios)
+    
+    if max_r > min_r:
+      scaled_ratios = (minority_ratios - min_r) / (max_r - min_r)
+    else:
+      scaled_ratios = np.zeros_like(minority_ratios)
+    
+    neg_ratios = -scaled_ratios / temperature
+    exp_ratios = np.exp(neg_ratios - np.max(neg_ratios))
+    probabilities = exp_ratios / exp_ratios.sum()
+    
+    class_distribution = {int(cls): float(prob) for cls, prob in zip(classes, probabilities)}
+    return class_distribution
+
+
+def simplicity_class_unsup(sampling_pool: list, simplicity: dict, dataset: Any, k: int, seed: int = 123, temperature: float = 0.05, **kwargs) -> list:
+    """
+    Uses the K-Means derived class probability distribution to sample classes, 
+    then picks the simplest available sample from that chosen class.
+    """
+    class_distribution = get_sampling_distribution(
+      sampling_pool=sampling_pool, 
+      simplicity=simplicity, 
+      dataset=dataset, 
+      seed=seed, 
+      temperature=temperature
+    )
+
+    if not class_distribution:
+      return simplicity_sampling(sampling_pool, simplicity, dataset, k)
+
+    # Group samples by class
+    class_pools = defaultdict(list)
+    for internal_idx in sampling_pool:
+      unique_id, _, y, _ = dataset[internal_idx]
+      class_pools[int(y)].append(internal_idx)
+
+    # Sort each class available samples by simplicity
+    for cls in class_pools:
+      class_pools[cls].sort(
+        key=lambda internal_idx: simplicity[dataset.indices[internal_idx]], 
+        reverse=True
+      )
+
+    chosen = []
+    classes = list(class_distribution.keys())
+
+    # Sample until k samples are extracted
+    while len(chosen) < k:
+      # Filter down to classes that still have samples available
+      avail_classes = [c for c in classes if len(class_pools[c]) > 0]
+      if not avail_classes:
+        break
+
+      # Extract and re-normalize probabilities for only the available classes
+      avail_probs = [class_distribution[c] for c in avail_classes]
+      prob_sum = sum(avail_probs)
+        
+      if prob_sum > 0:
+        # Renormalize probabilities if some classes are fully sampled
+        avail_probs = [p / prob_sum for p in avail_probs]
+      else:
+        # If probability sum is 0 uniform distribution
+        avail_probs = [1.0 / len(avail_classes)] * len(avail_classes)
+
+      # Draw a class based on the distribution
+      sampled_class = np.random.choice(avail_classes, p=avail_probs)
+        
+      # Pop the simplest sample (index 0) from the sampled class
+      chosen.append(class_pools[sampled_class].pop(0))
+
+    return chosen

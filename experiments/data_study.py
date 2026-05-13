@@ -140,3 +140,55 @@ def run_wb_study(seed):
   log_corr_results(result, filename=f"td_corr_Waterbirds")
   result = compute_auc_roc(separation_list, is_confounded, labels)
   log_auc_results(result, filename=f"td_auroc_Waterbirds")
+
+
+def run_celeba_study(seed: int = 123):
+  use_cuda = torch.cuda.is_available()
+  device = 'cuda' if use_cuda else 'cpu'
+  enable_reproducibility(seed)
+
+  model = load_model("ResNet", model_name="resnet50", n_classes=2, pretrained=True, device=device)
+  optim = load_optimizer("SGD", model.parameters(), lr=1e-3, weight_decay=0)
+  loss_fun = load_loss_fun("CrossEntropy")
+  
+  train_set, val_set, test_set = load_data("CelebAHC", reload=False)
+  
+  data = [train_set, val_set, test_set]
+  params = {"batch_size": 64}
+  m_params = [params] * 3
+  train_loader, val_loader, test_loader = create_dataloaders(data, m_params)
+
+  log, dyn = train_model(
+    model=model, 
+    train_loader=train_loader, 
+    optimizer=optim, 
+    loss_fun=loss_fun, 
+    n_epochs=100,
+    patience=3, 
+    eval_loader=val_loader, 
+    device=device
+  )
+  
+  test_loss, acc = eval_model(model, test_loader, loss_fun, device)
+  print("="*20, f"Test set Loss:{test_loss:.2f} | Acc:{acc:.2f}.", "="*20)
+
+  # Plot losses and training
+  print(" | ".join(f"{k}: {v:.4f}" if isinstance(v, float) else f"{k}: {v}" for k, v in log.items()))
+  plot_training_log(log, f"cs_celeba_{seed}")
+
+  simplicity = compute_simplicity(dyn, metric="MP")
+
+  separation_list = []
+  is_confounded = []
+  labels = []
+  
+  for id in range(len(train_set)):
+    index, _, label, mask = train_set[id] 
+    separation_list.append(simplicity[index])
+    is_confounded.append(1 if mask.sum() > 1 else 0)
+    labels.append(label.item())
+
+  result = compute_correlations(separation_list, is_confounded, labels)
+  log_corr_results(result, filename=f"td_corr_CelebA")
+  result = compute_auc_roc(separation_list, is_confounded, labels)
+  log_auc_results(result, filename=f"td_auroc_CelebA")

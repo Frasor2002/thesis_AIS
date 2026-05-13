@@ -4,11 +4,13 @@ from experiments.xil_plots import get_scenario_name, plot_single_run_comparison,
 
 SEEDS = [123, 111, 222, 333, 444]
 MODEL = "ResNet" # Other params are default
+DYNAMIC_SIMPLICITY = False
 bs7 = ([0]*3 + [0.99]*7)
 bs5 = ([0]*5 + [0.99]*5)
 bs3 = ([0]*7 + [0.99]*3)
 bs1 = ([0]*9 + [0.99]*1)
 BS = [bs7, bs5, bs3, bs1]
+
 
 def run_wb(seed):
   results = {}
@@ -19,7 +21,8 @@ def run_wb(seed):
       sampling_strategy=strat,
       budget=25,
       step=1,
-      initial_query=0
+      initial_query=0,
+      dynamic_simplicity=DYNAMIC_SIMPLICITY
     )
   return results
 

@@ -25,8 +25,8 @@ TEST_NP_FILE = os.path.join(SAVE_PATH, "celeba_hc_test.npz")
 
 # Imgs are all 1024 X 1024
 # Masks are 512
-# Resize everything down to 512
-IMG_SHAPE = (512, 512)
+# Resize everything correctly
+IMG_SHAPE = (224, 224)
 
 def print_statistics():
   if not os.path.exists(METADATA_PATH):
@@ -256,7 +256,8 @@ def prepare_celebahc():
       # If sample is confounded
       if y == gender:
         with Image.open(mask_path) as mask:
-          mask = mask.convert("L")  
+          mask = mask.convert("L")
+          mask = mask.resize(IMG_SHAPE, Image.Resampling.NEAREST)
           mask = np.array(mask)
         # Invert mask
         mask = (mask > 0).astype(np.uint8)

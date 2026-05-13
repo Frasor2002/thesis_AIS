@@ -72,7 +72,10 @@ def run_mnist_xil(
     starting_query=initial_query,
     rrr_reg_rate=1e2,
     log_filename=f"MNIST_{seed}_{sampling_strategy}_{bias_ratio}_{model_name}",
-    device=device
+    device=device,
+    dynamic_simplicity=False,
+    seed=seed,
+    temperature=0.1
   ) 
   return log
 
@@ -139,7 +142,10 @@ def run_fmnist_xil(
     starting_query=initial_query,
     rrr_reg_rate=1e2,
     log_filename=f"FMNIST_{seed}_{sampling_strategy}_{str(bias_ratio)}_{model_name}",
-    device=device
+    device=device,
+    dynamic_simplicity=False,
+    seed=seed,
+    temperature=0.05
   ) 
   return log
 
@@ -152,6 +158,7 @@ def run_wb_xil(
   step:int,
   initial_query:int,
   seed:int=123,
+  dynamic_simplicity=False
 ):
   use_cuda = torch.cuda.is_available()
   device = 'cuda' if use_cuda else 'cpu'
@@ -160,7 +167,7 @@ def run_wb_xil(
   model = load_model("ResNet", model_name="resnet50", n_classes=2, pretrained=True, device=device)
   # Load weights for all successive iterations
   load_checkpoint(RESET_CHECKPOINT, model, device)
-  optim = load_optimizer("SGD", model.parameters(), lr=1e-1, weight_decay=0)
+  optim = load_optimizer("SGD", model.parameters(), lr=1e-2, weight_decay=0)
   loss = load_loss_fun("CrossEntropy")
 
   train_set, val_set, test_set = load_data(name="Waterbirds", reload=False, balance=True, seed=seed)
@@ -187,7 +194,7 @@ def run_wb_xil(
   log = xil_loop(
     train_data=train_set,
     model=model, 
-    lr=1e-1,
+    lr=1e-2,
     epochs=100,
     patience=3,
     sampling_strategy=sampling_strategy,
@@ -199,9 +206,67 @@ def run_wb_xil(
     starting_query=initial_query,
     rrr_reg_rate=1e2,
     log_filename=f"{sampling_strategy}_Waterbirds_{seed}",
-    device=device
+    device=device,
+    dynamic_simplicity=dynamic_simplicity
   )
   return log
   
   
+def run_celeba_xil(
+  sampling_strategy: str,
+  budget: int,
+  step: int,
+  initial_query: int,
+  seed: int = 123,
+  dynamic_simplicity: bool = False
+):
+  use_cuda = torch.cuda.is_available()
+  device = 'cuda' if use_cuda else 'cpu'
+  enable_reproducibility(seed)
+
+  model = load_model("ResNet", model_name="resnet50", n_classes=2, pretrained=True, device=device)
+  # Load weights for all successive iterations
+  load_checkpoint(RESET_CHECKPOINT, model, device)
+  optim = load_optimizer("SGD", model.parameters(), lr=1e-2, weight_decay=0)
+  loss = load_loss_fun("CrossEntropy")
+
+  train_set, val_set, test_set = load_data(name="CelebAHC", reload=False)
   
+  data = [train_set, val_set, test_set]
+  params = {"batch_size": 32}
+  m_params = [params] * 3
+  train_loader, val_loader, test_loader = create_dataloaders(data, m_params)
+
+  _, dyn = train_model(
+    model=model, 
+    train_loader=train_loader, 
+    optimizer=optim, 
+    loss_fun=loss, 
+    n_epochs=100, 
+    patience=3,
+    eval_loader=val_loader, 
+    device=device
+  )
+  test_loss, acc = eval_model(model, test_loader, loss, device)
+  print("="*20, f"Test set Loss:{test_loss:.2f} | Acc:{acc:.2f}.", "="*20)
+
+  # Run XIL loop
+  log = xil_loop(
+    train_data=train_set,
+    model=model, 
+    lr=1e-2,
+    epochs=100,
+    patience=3,
+    sampling_strategy=sampling_strategy,
+    budget=budget,
+    val_loader=val_loader,
+    test_loader=test_loader,
+    tr_dynamics=dyn,
+    step_size=step,
+    starting_query=initial_query,
+    rrr_reg_rate=1e2,
+    log_filename=f"{sampling_strategy}_CelebA_{seed}",
+    device=device,
+    dynamic_simplicity=dynamic_simplicity
+  )
+  return log
