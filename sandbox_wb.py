@@ -48,7 +48,7 @@ def wb_test(seed, loss_name, lr, epoch, reg_rate):
   print("="*20,f"Test set Loss:{loss:.2f} | Acc:{acc:.2f}.","="*20)
   print(wga)
   print(gacc)
-  wb_log_plot(log, f"{seed}_{loss_name}")
+  wb_log_plot(log, f"{seed}_{loss_name}_{lr}_{reg_rate}")
 
   all_attr, _ = explain_dataset(train_loader, model, device)
   exp_penalty, class_penalty = evaluate_explainations(all_attr, train_set.masks, train_set.y)

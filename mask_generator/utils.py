@@ -7,6 +7,26 @@ import numpy as np
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_PATH = os.path.join(CURR_DIR, "log")
 
+
+def format_saliency_for_vlm(saliency: torch.Tensor) -> torch.Tensor:
+  sal = torch.abs(saliency)
+  if sal.dim() == 3 and sal.shape[0] > 1:
+    sal = torch.sum(sal, dim=0)
+  elif sal.dim() == 3:
+    sal = sal.squeeze(0)
+
+  sal_min, sal_max = sal.min(), sal.max()
+  if sal_max - sal_min > 1e-8:
+    sal_norm = (sal - sal_min) / (sal_max - sal_min)
+  else:
+    sal_norm = sal
+
+  cmap = plt.get_cmap('jet')
+  sal_colored = cmap(sal_norm.cpu().numpy()) 
+
+  return torch.tensor(sal_colored[..., :3]).permute(2, 0, 1).float().to(saliency.device)
+
+
 def save_visualization(image, saliency, pred_mask, gt_mask, save_path, sample_id="", class_label=""):
   # Ensure the directory exists
   os.makedirs(LOG_PATH, exist_ok=True)
@@ -35,7 +55,7 @@ def save_visualization(image, saliency, pred_mask, gt_mask, save_path, sample_id
   axes[0].axis('off')
     
   # Saliency map
-  axes[1].imshow(sal_viz, cmap='jet')
+  axes[1].imshow(sal_viz, cmap='jet' if sal_viz.ndim == 2 else None)
   axes[1].set_title("Saliency Map", fontsize=14)
   axes[1].axis('off')
     

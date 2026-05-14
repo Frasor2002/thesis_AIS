@@ -1,7 +1,7 @@
 from dataset.dataset import load_data
 from mask_generator.vlm import load_VLM
 from mask_generator.saliency import load_mnist_saliency, load_wb_saliency, load_celeba_saliency, saliency_sampler
-from mask_generator.utils import save_visualization, evaluate_masks
+from mask_generator.utils import save_visualization, evaluate_masks, format_saliency_for_vlm
 import time
 
 
@@ -38,7 +38,7 @@ def test_mnist(model_id, seed, device, dataset):
     id = s["id"]
     img = s["img"]
     y = s["label"]
-    sal = s["saliency"]
+    sal = format_saliency_for_vlm(s["saliency"])
     mask = s["mask"] 
 
     if dataset == "DecoyMNIST": lab = str(y)
@@ -76,7 +76,7 @@ def test_wb(model_id, seed, device):
     id = s["id"]
     img = s["img"]
     y = s["label"]
-    sal = s["saliency"]
+    sal = format_saliency_for_vlm(s["saliency"])
     mask = s["mask"]
 
     lab = lab_to_string[y]
@@ -113,7 +113,7 @@ def test_chc(model_id, seed, device):
     id = s["id"]
     img = s["img"]
     y = s["label"]
-    sal = s["saliency"]
+    sal = format_saliency_for_vlm(s["saliency"])
     mask = s["mask"]
 
     lab = lab_to_string[y]

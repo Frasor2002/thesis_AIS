@@ -1,4 +1,4 @@
-from transformers import AutoProcessor, AutoModelForImageTextToText
+from transformers import AutoProcessor, AutoModelForImageTextToText, BitsAndBytesConfig
 import torch
 from torch import Tensor
 from torchvision.transforms.functional import to_pil_image
@@ -12,29 +12,6 @@ import re
 #google/gemma-4-26B-A4B-it
 #Qwen/Qwen3.6-27B
 #Qwen/Qwen3.5-9B
-
-processor = AutoProcessor.from_pretrained("google/gemma-4-31B-it")
-model = AutoModelForImageTextToText.from_pretrained("google/gemma-4-31B-it")
-messages = [
-    {
-        "role": "user",
-        "content": [
-            {"type": "image", "url": "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/p-blog/candy.JPG"},
-            {"type": "text", "text": "What animal is on the candy?"}
-        ]
-    },
-]
-inputs = processor.apply_chat_template(
-	messages,
-	add_generation_prompt=True,
-	tokenize=True,
-	return_dict=True,
-	return_tensors="pt",
-).to(model.device)
-
-outputs = model.generate(**inputs, max_new_tokens=40)
-print(processor.decode(outputs[0][inputs["input_ids"].shape[-1]:]))
-
 
 def parse_bboxes(output_text: str):
   try:
@@ -81,11 +58,19 @@ class VLMLoader:
       trust_remote_code=True
     )
 
+    quantization_config = BitsAndBytesConfig(
+      load_in_4bit=True,
+      bnb_4bit_compute_dtype=torch.bfloat16,
+      bnb_4bit_use_double_quant=True,
+      bnb_4bit_quant_type="nf4"
+    )
+
     self.model = AutoModelForImageTextToText.from_pretrained(
       self.model_id,
       torch_dtype=torch.bfloat16,
       device_map="auto",
-      trust_remote_code=True
+      trust_remote_code=True,
+      quantization_config=quantization_config,
     ).eval()
     
   def _load_prompt(self) -> dict:

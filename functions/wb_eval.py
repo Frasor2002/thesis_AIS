@@ -281,6 +281,7 @@ def wb_log_plot(log: dict, filename) -> None:
   axes[0].set_title("Cross Entropy Loss Over Epochs")
   axes[0].set_xlabel("Epoch")
   axes[0].set_ylabel("Loss")
+  axes[0].set_ylim(bottom=0.0)
   axes[0].grid(True, linestyle="--", alpha=0.6)
   axes[0].legend()
 
@@ -296,6 +297,7 @@ def wb_log_plot(log: dict, filename) -> None:
   axes[1].set_title("Overall & Worst Group Accuracy")
   axes[1].set_xlabel("Epoch")
   axes[1].set_ylabel("Accuracy")
+  axes[1].set_ylim(0.0, 1.05)
   axes[1].grid(True, linestyle="--", alpha=0.6)
   axes[1].legend()
 
@@ -309,6 +311,7 @@ def wb_log_plot(log: dict, filename) -> None:
     axes[2].set_title("Individual Group Accuracies (Eval)")
     axes[2].set_xlabel("Epoch")
     axes[2].set_ylabel("Accuracy")
+    axes[2].set_ylim(0.0, 1.05)
     axes[2].grid(True, linestyle="--", alpha=0.6)
     # Place legend outside if there are many groups
     axes[2].legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')

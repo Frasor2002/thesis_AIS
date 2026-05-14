@@ -1,4 +1,4 @@
-from mask_generator.evaluate import test_mnist, test_wb
+from mask_generator.evaluate import test_mnist, test_wb, test_chc
 from experiments.utils import enable_reproducibility
 import torch
 
@@ -11,4 +11,5 @@ if __name__ == "__main__":
   enable_reproducibility(SEED)
 
   #test_mnist(MODEL_ID, SEED, device, dataset="DecoyMNIST")
+  #test_chc(MODEL_ID,SEED, device)
   test_wb(MODEL_ID, SEED, device)
