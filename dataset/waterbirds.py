@@ -315,8 +315,8 @@ def balance_data(data_dict, seed=123):
 
 
 def load_waterbirds(reload: bool = False,balance:bool=True, seed:int =123):
-  caches_exist = all([os.path.exists(f) for f in [TRAIN_NP_FILE, VAL_NP_FILE, TEST_NP_FILE]])
-  if not caches_exist or reload:
+  #caches_exist = all([os.path.exists(f) for f in [TRAIN_NP_FILE, VAL_NP_FILE, TEST_NP_FILE]])
+  if reload:
     #print("One or more cache files not found. Preparing datasets...")
     prepare_waterbirds()
   

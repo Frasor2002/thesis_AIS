@@ -14,6 +14,8 @@ import json
 import re
 from mask_generator.vlm_models.qwen3 import load_qwen3_vl_instruct
 from mask_generator.vlm_models.hf_vlm_loader import load_hf_vlm
+from mask_generator.vlm_models.google_api import load_google_vlm
+
 
 # Qwen/Qwen3.6-27B
 # Qwen/Qwen3.5-4B
@@ -24,9 +26,13 @@ PROMPT_PATH = os.path.join(CURR_DIR, "prompt", "prompt.yaml")
 
 
 
-def load_VLM(model_id, **kwargs):
+def load_VLM(model_id, use_api=True, **kwargs):
   load_dotenv()
-  login_to_hub()
+  if not use_api: login_to_hub()
+
+  if use_api:
+    return load_google_vlm(model_id, PROMPT_PATH)
+
 
   if "Qwen3" in model_id:
     model = load_qwen3_vl_instruct(model_id, PROMPT_PATH)

@@ -308,7 +308,7 @@ def prepare_celebahc():
 
 
 def load_celebahc(reload):
-  caches_exist = all([os.path.exists(f) for f in [TRAIN_NP_FILE, VAL_NP_FILE, TEST_NP_FILE]])
+  #caches_exist = all([os.path.exists(f) for f in [TRAIN_NP_FILE, VAL_NP_FILE, TEST_NP_FILE]])
   if reload:
     prepare_celebahc()
 

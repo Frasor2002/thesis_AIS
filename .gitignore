@@ -2,6 +2,8 @@
 dataset/data
 model/bin
 log
+saliency
+venv-pytorch
 
 
 # Byte-compiled / optimized / DLL files

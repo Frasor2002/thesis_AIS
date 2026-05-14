@@ -7,12 +7,13 @@ pandas==2.3.3
 pillow==11.3.0
 scikit-learn==1.7.2
 scipy==1.16.3
-torch==2.9.1
-torchvision==0.24.1
+torch==2.12.0+cu126
+torchvision==0.27.0+cu126
 tqdm==4.67.1
 captum==0.8.0
 torchmetrics==1.9.0
-transformers @ git+https://github.com/huggingface/transformers.git@8c524a84eeba0fff7ea39af8dda874594b89b2e3huggingface_hub==1.14.0
+transformers @ git+https://github.com/huggingface/transformers.git@8c524a84eeba0fff7ea39af8dda874594b89b2e3
+huggingface_hub==1.14.0
 dotenv==0.9.9
 PyYAML==6.0.3
 accelerate==1.13.0

@@ -45,7 +45,7 @@ def test_mnist(model_id, seed, device, dataset):
     else: lab = fmnist_to_string[y]
 
     start_time = time.time()
-    output = vlm.detect_confounders(img, saliency=sal, label=lab)
+    output = vlm.detect_confounders(img, saliency=sal, label=lab, qualitative=True)
     end_time = time.time()
     inference_time = end_time - start_time
 

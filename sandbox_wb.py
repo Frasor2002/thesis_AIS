@@ -38,7 +38,7 @@ def wb_test(seed, loss_name, lr, epoch, reg_rate):
     loss_fun=loss, 
     n_epochs=epoch, 
     eval_loader=val_loader, 
-    patience=3,
+    #patience=3,
     device=device
   )
   print(log)
@@ -60,12 +60,12 @@ if __name__ == "__main__":
   ce = "CrossEntropy"
   rrr = "RRR"
   # Best runs found
-  wb_test(123, ce, 1e-1, 100, 1e2)
-  wb_test(123, rrr, 1e-1, 100, 1e2)
+  #wb_test(123, ce, 1e-1, 100, 1e2)
+  #wb_test(123, rrr, 1e-1, 100, 1e2)
 
   # Different lr
-  wb_test(123, ce, 1e-2, 100, 1e2)
-  wb_test(123, rrr, 1e-2, 100, 1e2)
+  wb_test(123, ce, 1e-2, 60, 1e2)
+  wb_test(123, rrr, 1e-2, 60, 1e2)
 
   # Try different RRR configuration to find the best one
   #wb_test(123, rrr, 1e-2, 100, 1) #89
