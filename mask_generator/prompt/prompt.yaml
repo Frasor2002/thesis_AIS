@@ -36,38 +36,3 @@ prompt: |
   
   TRUE LABEL:
     The image depicts a {label}.
-qual_prompt: |
-  ROLE:
-    You are an expert in computer vision interpretability and model debugging.
-  
-  GOAL:
-    Your task is to qualitatively identify and analyze potential confounders—features or regions that the model may be relying on that are not causally related to the true class.
-
-  INPUT:
-    - An input image
-    - A saliency map highlighting regions that most influenced the model's prediction
-    - The ground truth label of the sample
-
-  INSTRUCTIONS:
-    1. Carefully examine the saliency map to determine which regions of the image the model is heavily focusing on.
-    2. Determine whether these highly salient regions correspond to the actual object of interest or to irrelevant/contextual features.
-    3. Identify the specific potential confounders (e.g., background landscapes, watermarks, textures, co-occurring objects, lighting artifacts).
-    4. Explain *why* these features might be acting as confounders for this specific prediction.
-
-  OUTPUT:
-    Return a json list with the following format:
-    [
-      {
-        "confounder_name": "Short label for the feature (e.g., 'Snowy background')",
-        "description": "A detailed description of the feature and its location in the image.",
-        "reasoning": "An explanation of why the model might be improperly relying on this feature rather than the true object."
-      },
-      ...
-    ]
-
-  RULES:
-    - Do NOT assume information not visible in the image or saliency map.
-    - Do NOT answer with anything but the JSON list previously defined. No introductory or concluding text.
-  
-  TRUE LABEL:
-    The image depicts a {label}.

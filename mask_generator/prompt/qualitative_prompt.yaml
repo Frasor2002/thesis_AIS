@@ -1,0 +1,21 @@
+prompt: |
+  GOAL:
+    Analyze the provided image and its corresponding saliency map to identify potential confounders. The true label for this image is: {label}.
+
+  INSTRUCTIONS:
+    1. EXPLANATION: Examine the saliency map to see which regions the model focuses on. Explain whether these highlighted regions correspond to the actual object of interest or to confounders (e.g., irrelevant background patterns, watermarks, lighting artifacts, or co-occurring objects).
+    2. BOUNDING BOXES: Locate the exact areas of the identified confounders. Do not guess or assume information not visible in the image.
+
+  OUTPUT FORMAT:
+    Provide your explanation first, followed strictly by a JSON block containing the bounding box coordinates [xmin, ymin, xmax, ymax] for each confounder.
+
+    Explanation:
+    [Your concise explanation of the saliency map and identified confounders here]
+
+    JSON:
+    ```json
+    [
+      {
+        "bbox": [xmin, ymin, xmax, ymax]
+      }
+    ]

@@ -2,49 +2,11 @@ from transformers import AutoProcessor, AutoModelForImageTextToText, BitsAndByte
 import torch
 from torch import Tensor
 from torchvision.transforms.functional import to_pil_image
-from typing import Optional
 import os
 import yaml
 import json
 import re
 
-#google/gemma-4-31B-it
-#google/gemma-4-26B-A4B-it
-#Qwen/Qwen3.6-27B
-#Qwen/Qwen3.5-9B
-
-def parse_bboxes(output_text: str):
-  try:
-    match = re.search(r"\[.*\]", output_text, re.DOTALL)
-    if match is None: return []
-
-    json_str = match.group(0)
-    data = json.loads(json_str)
-
-    bboxes = []
-    for item in data:
-      if "bbox" in item and len(item["bbox"]) == 4:
-        bboxes.append(item["bbox"])
-
-    return bboxes
-  except Exception as e:
-    print("Parsing failed:", e)
-    return []
-
-def bboxes_to_mask(bboxes, image_shape):
-  H, W = image_shape
-  mask = torch.zeros((H, W), dtype=torch.uint8)
-
-  for xmin, ymin, xmax, ymax in bboxes:
-    # Clamp to make them stay inside bounds
-    xmin = max(0, min(xmin, W))
-    xmax = max(0, min(xmax, W))
-    ymin = max(0, min(ymin, H))
-    ymax = max(0, min(ymax, H))
-
-    mask[ymin:ymax, xmin:xmax] = 1
-
-  return mask
 
 class VLMLoader:
   def __init__(self, model_id: str, prompt_path: str):
@@ -86,14 +48,12 @@ class VLMLoader:
     self,
     img: Tensor,
     label: str,
-    saliency: Tensor,
-    qualitative: bool= False
+    saliency: Tensor
   ):
     prompt_dict = self._load_prompt()
 
     images_to_process = [img, saliency]
-    if qualitative: prompt_template = prompt_dict["qual_prompt"]
-    else: prompt_template = prompt_dict["prompt"]
+    prompt_template = prompt_dict["prompt"]
 
     # Add the label to the prompt
     prompt_text = prompt_template.replace("{label}", label)
@@ -126,14 +86,10 @@ class VLMLoader:
       skip_special_tokens=True, 
       clean_up_tokenization_spaces=False
     ).strip()
-    if qualitative: return output_text
-    
-    print(f"Output txt: {output_text}")
-    bboxes = parse_bboxes(output_text)
-    print(f"bboxes: {bboxes} | Img shape: {img.shape[-2:]}")
-    prediction = bboxes_to_mask(bboxes, img.shape[-2:])
 
-    return prediction
+    print(f"Output txt {output_text}")
+
+    return output_text
 
 
 

@@ -3,6 +3,8 @@ import os
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
+import json
+import re
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_PATH = os.path.join(CURR_DIR, "log")
@@ -25,6 +27,46 @@ def format_saliency_for_vlm(saliency: torch.Tensor) -> torch.Tensor:
   sal_colored = cmap(sal_norm.cpu().numpy()) 
 
   return torch.tensor(sal_colored[..., :3]).permute(2, 0, 1).float().to(saliency.device)
+
+
+def parse_bboxes(output_text: str):
+  try:
+    match = re.search(r"\[.*\]", output_text, re.DOTALL)
+    if match is None: return []
+
+    json_str = match.group(0)
+    data = json.loads(json_str)
+
+    bboxes = []
+    for item in data:
+      if "bbox" in item and len(item["bbox"]) == 4:
+        bboxes.append(item["bbox"])
+
+    return bboxes
+  except Exception as e:
+    print("Parsing failed:", e)
+    return []
+
+def bboxes_to_mask(bboxes, image_shape, normalize=True):
+  H, W = image_shape
+  mask = torch.zeros((H, W), dtype=torch.uint8)
+
+  for xmin, ymin, xmax, ymax in bboxes:
+    if normalize:
+      xmin = int((xmin / 1000.0) * W)
+      ymin = int((ymin / 1000.0) * H)
+      xmax = int((xmax / 1000.0) * W)
+      ymax = int((ymax / 1000.0) * H)
+
+    # Clamp to make them stay inside bounds
+    xmin = max(0, min(xmin, W))
+    xmax = max(0, min(xmax, W))
+    ymin = max(0, min(ymin, H))
+    ymax = max(0, min(ymax, H))
+
+    mask[ymin:ymax, xmin:xmax] = 1
+
+  return mask
 
 
 def save_visualization(image, saliency, pred_mask, gt_mask, save_path, sample_id="", class_label=""):
