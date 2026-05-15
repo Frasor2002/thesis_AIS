@@ -53,6 +53,10 @@ if __name__ == "__main__":
 
       # plot single run
       plot_single_run_comparison(res, f"DecoyMNIST_{seed}", get_scenario_name(bs))
+      print(f"Partial result DecoyMNIST_{seed}:", res)
+
+    print(f"DecoyMNIST {bs}, Final results")
+    print(mnist_res)
 
     # plot multiple runs
     plot_multi_run_comparison(mnist_res, "DecoyMNIST",  get_scenario_name(bs))
@@ -68,6 +72,10 @@ if __name__ == "__main__":
 
       # plot single run
       plot_single_run_comparison(res, f"DecoyFMNIST_{seed}", get_scenario_name(bs))
+      print(f"Partial result DecoyFMNIST_{seed}:", res)
+
+    print(f"DecoyFMNIST {bs}, Final results")
+    print(fmnist_res)
 
     # plot multiple runs
     plot_multi_run_comparison(fmnist_res, "DecoyFMNIST",  get_scenario_name(bs))

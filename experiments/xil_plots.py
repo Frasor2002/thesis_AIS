@@ -6,12 +6,13 @@ from typing import Dict, List, Any, Union
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG_DIR = os.path.join(BASE_DIR, "log", "xil_plot")
 
-STRATEGIES = ["simplicity", "simplicity_class", "random", "simplicity_class_unsup"]
+STRATEGIES = ["simplicity", "simplicity_class", "random", "simplicity_class_unsup", "adaptive"]
 STRAT_COLORS = {
   "simplicity": "C1", 
   "simplicity_class": "mediumorchid", 
   "random": "mediumturquoise",
-  "simplicity_class_unsup": "C2"
+  "simplicity_class_unsup": "C2",
+  "adaptive": "crimson"
 }
 
 METRICS = ["conf_sampled", "attr_on_conf", "accuracy"]

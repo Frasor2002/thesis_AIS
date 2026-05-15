@@ -113,7 +113,6 @@ def xil_loop(
   rrr_reg_rate:float=1, 
   log_filename: str= "xil_log",
   device:str="cpu",
-  dynamic_simplicity:bool = False,
   seed=123,
   temperature=0.1) -> dict:
   """XIL loop to deconfound a model.
@@ -211,7 +210,7 @@ def xil_loop(
 
     _, updated_dyns = train_model(model, train_loader, optim, train_loss, epochs, val_loader, patience=patience, device=device)
 
-    if dynamic_simplicity:
+    if sampling_strategy == "adaptive":
       simplicity = compute_simplicity(updated_dyns, metric="MP")
       logger.info("Simplicity metric recomputed using latest training dynamics.")
 
@@ -241,6 +240,7 @@ def xil_sampling(strategy: str, **kwargs) -> list:
   strategy_map = {
     "random": random_sampling,
     "simplicity": simplicity_sampling,
+    "adaptive": simplicity_sampling,
     "simplicity_class": simplicity_class_split,
     "simplicity_class_unsup": simplicity_class_unsup
   }

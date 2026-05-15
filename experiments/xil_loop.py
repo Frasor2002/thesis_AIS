@@ -73,7 +73,6 @@ def run_mnist_xil(
     rrr_reg_rate=1e2,
     log_filename=f"MNIST_{seed}_{sampling_strategy}_{bias_ratio}_{model_name}",
     device=device,
-    dynamic_simplicity=False,
     seed=seed,
     temperature=0.1
   ) 
@@ -143,7 +142,6 @@ def run_fmnist_xil(
     rrr_reg_rate=1e2,
     log_filename=f"FMNIST_{seed}_{sampling_strategy}_{str(bias_ratio)}_{model_name}",
     device=device,
-    dynamic_simplicity=False,
     seed=seed,
     temperature=0.05
   ) 
@@ -158,7 +156,6 @@ def run_wb_xil(
   step:int,
   initial_query:int,
   seed:int=123,
-  dynamic_simplicity=False
 ):
   use_cuda = torch.cuda.is_available()
   device = 'cuda' if use_cuda else 'cpu'
@@ -206,8 +203,7 @@ def run_wb_xil(
     starting_query=initial_query,
     rrr_reg_rate=1e2,
     log_filename=f"{sampling_strategy}_Waterbirds_{seed}",
-    device=device,
-    dynamic_simplicity=dynamic_simplicity
+    device=device
   )
   return log
   
@@ -218,7 +214,6 @@ def run_celeba_xil(
   step: int,
   initial_query: int,
   seed: int = 123,
-  dynamic_simplicity: bool = False
 ):
   use_cuda = torch.cuda.is_available()
   device = 'cuda' if use_cuda else 'cpu'
@@ -267,6 +262,5 @@ def run_celeba_xil(
     rrr_reg_rate=1e2,
     log_filename=f"{sampling_strategy}_CelebA_{seed}",
     device=device,
-    dynamic_simplicity=dynamic_simplicity
   )
   return log
