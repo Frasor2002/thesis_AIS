@@ -34,7 +34,6 @@ def chc_test(seed, loss_name, lr, epoch, reg_rate):
     loss_fun=loss, 
     n_epochs=epoch, 
     eval_loader=val_loader, 
-    patience=3,
     device=device
   )
   print(log)
@@ -44,42 +43,18 @@ def chc_test(seed, loss_name, lr, epoch, reg_rate):
   print("="*20,f"Test set Loss:{loss:.2f} | Acc:{acc:.2f}.","="*20)
   print(wga)
   print(gacc)
-  celeba_log_plot(log, f"{seed}_{loss_name}_{lr}_{reg_rate}")
+  celeba_log_plot(log, f"{seed}_{loss_name}_{lr}_{reg_rate}_{epoch}")
 
   all_attr, all_imgs = explain_dataset(train_loader, model, device)
   exp_penalty, class_penalty = evaluate_explainations(all_attr, train_set.masks, train_set.y)
   print(exp_penalty)
   print(class_penalty)
 
-  visualize_k_expl(all_attr, all_imgs, target_label=0)
-  plt.savefig("Test1.pdf")
-  visualize_k_expl(all_attr, all_imgs, target_label=1)
-  plt.savefig("Test2.pdf")
 
 
 if __name__ == "__main__":
   ce = "CrossEntropy"
   rrr = "RRR"
-  chc_test(123, ce, 1e-1, 100, 1)
-  chc_test(123, ce, 1e-2, 100, 1)
+  chc_test(123, ce, 1e-3, 50, 1)
+  chc_test(123, rrr, 1e-2, 50, 1e1)
 
-
-  # Try different RRR configuration to find the best one
-  chc_test(123, rrr, 1e-2, 100, 1) #89
-  chc_test(123, rrr, 1e-2, 100, 1e1) #90
-  chc_test(123, rrr, 1e-2, 100, 1e2) #86
-  chc_test(123, rrr, 1e-2, 100, 1e3)
-  chc_test(123, rrr, 1e-2, 100, 1e4)
-
-  chc_test(123, rrr, 1e-3, 100, 1e2)
-  chc_test(123, rrr, 1e-3, 100, 1e3)
-  chc_test(123, rrr, 1e-3, 100, 1e4)
-
-  chc_test(123, rrr, 1e-4, 100, 1e2)
-  chc_test(123, rrr, 1e-4, 100, 1e3)
-  chc_test(123, rrr, 1e-4, 100, 1e4)
-
-  chc_test(123, rrr, 1e-1, 100, 1e2)
-  chc_test(123, rrr, 1e-1, 100, 1e3)
-  chc_test(123, rrr, 1e-1, 100, 1e4)
-  

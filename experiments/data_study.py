@@ -33,8 +33,8 @@ def run_mnist_study(
   enable_reproducibility(seed)
 
   model = load_model(model_name, device=device)
-  RESET_CHECKPOINT="reset_model"
-  load_checkpoint(RESET_CHECKPOINT, model, device)
+  #RESET_CHECKPOINT="reset_model"
+  #load_checkpoint(RESET_CHECKPOINT, model, device)
   optim = load_optimizer("SGD", model.parameters(), lr=1e-2, weight_decay=0)
   loss = load_loss_fun("CrossEntropy")
   train_set, val_set, test_set = load_data(
@@ -113,8 +113,7 @@ def run_wb_study(seed):
     train_loader=train_loader, 
     optimizer=optim, 
     loss_fun=loss, 
-    n_epochs=100,
-    patience=3, 
+    n_epochs=10,
     eval_loader=val_loader, 
     device=device
   )
@@ -163,8 +162,7 @@ def run_celeba_study(seed: int = 123):
     train_loader=train_loader, 
     optimizer=optim, 
     loss_fun=loss_fun, 
-    n_epochs=100,
-    patience=3, 
+    n_epochs=50,
     eval_loader=val_loader, 
     device=device
   )

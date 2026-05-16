@@ -15,8 +15,6 @@ DATASET="DecoyMNIST"
 CONF_TYPES=[0,1,2] # [0,1,2]
 
 if __name__ == "__main__":
-  create_common_checkpoint(SEED, MODEL)
-
   print(f"Dataset {DATASET}")
   for i in range(len(BS_LIST)):
     for conf in CONF_TYPES:

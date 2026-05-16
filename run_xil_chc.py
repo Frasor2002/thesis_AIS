@@ -2,9 +2,8 @@ from experiments.xil_loop import run_celeba_xil
 from experiments.utils import create_common_checkpoint
 from experiments.xil_plots import plot_single_run_comparison, plot_multi_run_comparison
 
-SEEDS = [123, 111, 222, 333, 444]
+SEEDS = [123, 111, 222]
 MODEL = "ResNet" # Other params are default
-DYNAMIC_SIMPLICITY = False
 
 
 def run_celeba(seed):
@@ -26,7 +25,7 @@ def run_celeba(seed):
 if __name__ == "__main__":
   c_res = []
   for seed in SEEDS:
-    create_common_checkpoint(seed, MODEL)
+    create_common_checkpoint(seed, MODEL, "_celeba")
     res = run_celeba(seed)
     c_res.append(res)
 

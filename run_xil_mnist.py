@@ -10,9 +10,11 @@ bs3 = ([0]*7 + [0.99]*3)
 bs1 = ([0]*9 + [0.99]*1)
 BS = [bs7]
 
+#simplicity_class_unsup
+
 def run_mnist(seed, model, bs):
   results = {}
-  for strat in ["simplicity_class", "simplicity", "random"]:
+  for strat in ["simplicity_class_unsup", "simplicity", "random"]:
     print(strat)
     results[strat] = run_mnist_xil(
       seed,
@@ -28,7 +30,7 @@ def run_mnist(seed, model, bs):
 
 def run_fmnist(seed, model, bs):
   results = {}
-  for strat in ["simplicity_class", "simplicity", "random"]:
+  for strat in ["simplicity_class_unsup", "simplicity", "random"]:
     print(strat)
     results[strat] = run_fmnist_xil(
       seed,
@@ -47,7 +49,7 @@ if __name__ == "__main__":
   for bs in BS:
     mnist_res = []
     for seed in SEEDS:
-      create_common_checkpoint(seed, MODEL)
+      create_common_checkpoint(seed, MODEL, "_mnist")
       res = run_mnist(seed, MODEL, bs)
       mnist_res.append(res)
 
@@ -66,7 +68,7 @@ if __name__ == "__main__":
   for bs in BS:
     fmnist_res = []
     for seed in SEEDS:
-      create_common_checkpoint(seed, MODEL)
+      create_common_checkpoint(seed, MODEL, "_fmnist")
       res = run_fmnist(seed, MODEL, bs)
       fmnist_res.append(res)
 

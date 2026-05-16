@@ -27,7 +27,7 @@ def run_mnist_xil(
 
   model = load_model(model_name, device=device)
   # Same weights for all successive iterations
-  load_checkpoint(RESET_CHECKPOINT, model, device)
+  load_checkpoint(RESET_CHECKPOINT + "_mnist", model, device)
   optim = load_optimizer("SGD", model.parameters(), lr=1e-2, weight_decay=0)
   loss = load_loss_fun("CrossEntropy")
 
@@ -96,7 +96,7 @@ def run_fmnist_xil(
 
   model = load_model(model_name, device=device)
   # Same weights for all successive iterations
-  load_checkpoint(RESET_CHECKPOINT, model, device)
+  load_checkpoint(RESET_CHECKPOINT + "_fmnist", model, device)
   optim = load_optimizer("SGD", model.parameters(), lr=1e-2, weight_decay=0)
   loss = load_loss_fun("CrossEntropy")
 
@@ -163,7 +163,7 @@ def run_wb_xil(
 
   model = load_model("ResNet", model_name="resnet50", n_classes=2, pretrained=True, device=device)
   # Load weights for all successive iterations
-  load_checkpoint(RESET_CHECKPOINT, model, device)
+  load_checkpoint(RESET_CHECKPOINT + "_wb", model, device)
   optim = load_optimizer("SGD", model.parameters(), lr=1e-2, weight_decay=0)
   loss = load_loss_fun("CrossEntropy")
 
@@ -179,8 +179,7 @@ def run_wb_xil(
     train_loader=train_loader, 
     optimizer=optim, 
     loss_fun=loss, 
-    n_epochs=100, 
-    patience=3,
+    n_epochs=10, 
     eval_loader=val_loader, 
     device=device
   )
@@ -192,8 +191,7 @@ def run_wb_xil(
     train_data=train_set,
     model=model, 
     lr=1e-2,
-    epochs=100,
-    patience=3,
+    epochs=60,
     sampling_strategy=sampling_strategy,
     budget=budget,
     val_loader=val_loader,
@@ -221,8 +219,8 @@ def run_celeba_xil(
 
   model = load_model("ResNet", model_name="resnet50", n_classes=2, pretrained=True, device=device)
   # Load weights for all successive iterations
-  load_checkpoint(RESET_CHECKPOINT, model, device)
-  optim = load_optimizer("SGD", model.parameters(), lr=1e-2, weight_decay=0)
+  load_checkpoint(RESET_CHECKPOINT + "_celeba", model, device)
+  optim = load_optimizer("SGD", model.parameters(), lr=1e-3, weight_decay=0)
   loss = load_loss_fun("CrossEntropy")
 
   train_set, val_set, test_set = load_data(name="CelebAHC", reload=False)
@@ -259,7 +257,7 @@ def run_celeba_xil(
     tr_dynamics=dyn,
     step_size=step,
     starting_query=initial_query,
-    rrr_reg_rate=1e2,
+    rrr_reg_rate=1e1,
     log_filename=f"{sampling_strategy}_CelebA_{seed}",
     device=device,
   )

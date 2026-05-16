@@ -2,7 +2,7 @@ from experiments.xil_loop import run_wb_xil
 from experiments.utils import create_common_checkpoint
 from experiments.xil_plots import get_scenario_name, plot_single_run_comparison, plot_multi_run_comparison
 
-SEEDS = [123, 111, 222, 333, 444]
+SEEDS = [123, 111, 222]
 MODEL = "ResNet" # Other params are default
 
 
@@ -26,7 +26,7 @@ if __name__ == "__main__":
   # wb study
   wb_res = []
   for seed in SEEDS:
-    create_common_checkpoint(seed, MODEL)
+    create_common_checkpoint(seed, MODEL, "_wb")
     res = run_wb(seed)
     wb_res.append(res)
 
