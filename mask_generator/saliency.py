@@ -115,7 +115,7 @@ def prepare_celeba_saliency(seed, device):
   model = load_model("ResNet", model_name="resnet50", n_classes=2, pretrained=True, device=device)
   optim = load_optimizer("SGD", model.parameters(), lr=1e-3)
   loss = load_loss_fun("CrossEntropy")
-  train_set, val_set, test_set = load_data("CelebAHairColor", reload=False, seed=seed)
+  train_set, val_set, test_set = load_data("CelebAHC", reload=False)
   data = [train_set, val_set, test_set]
   params = {"batch_size": 64}
   m_params = [params] * 3

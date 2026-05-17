@@ -29,7 +29,7 @@ class VLMLoader:
 
     self.model = AutoModelForImageTextToText.from_pretrained(
       self.model_id,
-      torch_dtype=torch.bfloat16,
+      dtype=torch.bfloat16,
       device_map="auto",
       trust_remote_code=True,
       quantization_config=quantization_config,
