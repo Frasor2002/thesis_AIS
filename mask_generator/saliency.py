@@ -70,7 +70,7 @@ def load_mnist_saliency(seed, device, dataset):
 
 def prepare_wb_saliency(seed, device):
   model = load_model("ResNet", model_name="resnet50", n_classes=2, pretrained=True, device=device)
-  optim = load_optimizer("SGD", model.parameters(), lr=1e-1)
+  optim = load_optimizer("SGD", model.parameters(), lr=1e-2)
   loss = load_loss_fun("CrossEntropy")
   train_set, val_set, test_set = load_data("Waterbirds", reload=False, balance=True, seed=seed)
   data = [train_set, val_set, test_set]
@@ -82,7 +82,7 @@ def prepare_wb_saliency(seed, device):
     train_loader=train_loader, 
     optimizer=optim, 
     loss_fun=loss, 
-    n_epochs=100, 
+    n_epochs=60,
     eval_loader=val_loader, 
     patience=3,
     device=device
@@ -117,7 +117,7 @@ def prepare_celeba_saliency(seed, device):
   loss = load_loss_fun("CrossEntropy")
   train_set, val_set, test_set = load_data("CelebAHairColor", reload=False, seed=seed)
   data = [train_set, val_set, test_set]
-  params = {"batch_size": 32}
+  params = {"batch_size": 64}
   m_params = [params] * 3
   train_loader, val_loader, test_loader = create_dataloaders(data, m_params)
   
@@ -127,7 +127,7 @@ def prepare_celeba_saliency(seed, device):
     train_loader=train_loader, 
     optimizer=optim, 
     loss_fun=loss, 
-    n_epochs=100, 
+    n_epochs=50, 
     eval_loader=val_loader, 
     patience=3,
     device=device
