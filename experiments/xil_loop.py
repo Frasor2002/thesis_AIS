@@ -74,7 +74,8 @@ def run_mnist_xil(
     log_filename=f"MNIST_{seed}_{sampling_strategy}_{bias_ratio}_{model_name}",
     device=device,
     seed=seed,
-    temperature=0.1
+    temperature=0.1,
+    diff="_mnist"
   ) 
   return log
 
@@ -143,7 +144,8 @@ def run_fmnist_xil(
     log_filename=f"FMNIST_{seed}_{sampling_strategy}_{str(bias_ratio)}_{model_name}",
     device=device,
     seed=seed,
-    temperature=0.05
+    temperature=0.05,
+    diff="_fmnist"
   ) 
   return log
 
@@ -201,7 +203,8 @@ def run_wb_xil(
     starting_query=initial_query,
     rrr_reg_rate=1e2,
     log_filename=f"{sampling_strategy}_Waterbirds_{seed}",
-    device=device
+    device=device,
+    diff="_wb"
   )
   return log
   
@@ -249,7 +252,7 @@ def run_celeba_xil(
     model=model, 
     lr=1e-2,
     epochs=100,
-    patience=3,
+    patience=3, # try no patience 50 epochs and see
     sampling_strategy=sampling_strategy,
     budget=budget,
     val_loader=val_loader,
@@ -260,5 +263,6 @@ def run_celeba_xil(
     rrr_reg_rate=1e1,
     log_filename=f"{sampling_strategy}_CelebA_{seed}",
     device=device,
+    diff="_celeba"
   )
   return log

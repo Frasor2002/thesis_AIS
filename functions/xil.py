@@ -113,7 +113,8 @@ def xil_loop(
   log_filename: str= "xil_log",
   device:str="cpu",
   seed=123,
-  temperature=0.1) -> dict:
+  temperature=0.1,
+  diff="") -> dict:
   """XIL loop to deconfound a model.
   Args:
     train_data (Any): traning dataset.
@@ -200,7 +201,7 @@ def xil_loop(
     loop.update(len(chosen_positions))
     
     # Reset model and than retrain
-    load_checkpoint(RESET_CHECKPOINT, model, device)
+    load_checkpoint(RESET_CHECKPOINT + diff, model, device)
     # Init optimizer and losses
     optim = load_optimizer("SGD", model.parameters(), lr=lr, weight_decay=0)
     train_loss = load_loss_fun("RRR", reg_rate=rrr_reg_rate, normalize=True)
