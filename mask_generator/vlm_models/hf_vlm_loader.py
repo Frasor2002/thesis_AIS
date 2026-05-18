@@ -1,5 +1,5 @@
 import PIL.Image
-from transformers import AutoProcessor, AutoModelForImageTextToText, BitsAndBytesConfig
+from transformers import AutoProcessor, AutoModelForImageTextToText
 import os
 import yaml
 import PIL
@@ -10,12 +10,11 @@ class VLMLoader:
     self.model_id = model_id
     self.prompt_path = prompt_path
 
-    quantization_config = BitsAndBytesConfig(load_in_4bit=True)
+    #quantization_config = BitsAndBytesConfig(load_in_4bit=True)
 
     self.processor = AutoProcessor.from_pretrained(model_id)
     self.model = AutoModelForImageTextToText.from_pretrained(
       model_id,
-      quantization_config=quantization_config,
       dtype="auto",
       device_map="auto"
     )

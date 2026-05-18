@@ -13,7 +13,7 @@ def test_mnist(model_id, seed, device, dataset, use_api):
     img = s["img"]
     pred = s["pred"]
     lab = s["label"]
-    sal = format_saliency_for_vlm(s["saliency"])
+    sal = s["saliency"]
     mask = s.get("mask", None)
 
     start_time = time.time()
@@ -47,7 +47,7 @@ def test_wb(model_id, seed, device, use_api):
     img = s["img"]
     pred = s["pred"]
     lab = s["label"]
-    sal = format_saliency_for_vlm(s["saliency"])
+    sal = s["saliency"]
     mask = s.get("mask", None)
 
     start_time = time.time()
@@ -80,7 +80,7 @@ def test_chc(model_id, seed, device, use_api):
     img = s["img"]
     pred = s["pred"]
     lab = s["label"]
-    sal = format_saliency_for_vlm(s["saliency"])
+    sal = s["saliency"]
     mask = s.get("mask", None)
 
     start_time = time.time()
