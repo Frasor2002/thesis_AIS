@@ -27,9 +27,9 @@ if __name__ == "__main__":
   device = 'cuda' if use_cuda else 'cpu'
   enable_reproducibility(SEED)
 
-  #save_all_data(SEED, device, k=10)
+  save_all_data(SEED, device, k=10)
 
   #test_mnist(MODEL_ID, SEED, device, dataset="DecoyMNIST", use_api=API)
   #test_mnist(MODEL_ID, SEED, device, dataset="DecoyMNIST", use_api=API)
-  test_chc(MODEL_ID,SEED, device, API)
-  test_wb(MODEL_ID, SEED, device, API)
+  #test_chc(MODEL_ID,SEED, device, API)
+  #test_wb(MODEL_ID, SEED, device, API)

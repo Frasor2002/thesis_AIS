@@ -5,9 +5,35 @@ import matplotlib.pyplot as plt
 import numpy as np
 import json
 import re
+from PIL import Image
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_PATH = os.path.join(CURR_DIR, "log")
+
+def convert_to_heatmap(sal_tensor: torch.Tensor, outlier_perc: float = 1.0) -> Image.Image:
+  """
+  Converts a raw attribution tensor into a Captum-style heatmap PIL Image.
+  """
+  sal_2d = torch.sum(torch.abs(sal_tensor), dim=0).detach().cpu().numpy()
+  
+  if outlier_perc > 0:
+    vmax = np.percentile(sal_2d, 100 - outlier_perc)
+    vmin = sal_2d.min()
+    sal_2d = np.clip(sal_2d, vmin, vmax)
+      
+  vmax = sal_2d.max()
+  vmin = sal_2d.min()
+  if vmax > vmin:
+    sal_2d = (sal_2d - vmin) / (vmax - vmin)
+  else:
+    sal_2d = np.zeros_like(sal_2d)
+      
+  cmap = plt.get_cmap('jet')
+  heatmap_rgba = cmap(sal_2d)
+  
+  heatmap_rgb = (heatmap_rgba[:, :, :3] * 255).astype(np.uint8)
+  
+  return Image.fromarray(heatmap_rgb)
 
 
 def format_saliency_for_vlm(saliency: torch.Tensor) -> torch.Tensor:

@@ -12,6 +12,7 @@ from functions.wb_eval import wb_train
 from functions.chc_eval import celeba_train
 from functions.xai import explain_dataset_with_predictions
 from PIL import Image
+from mask_generator.utils import convert_to_heatmap
 
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -259,9 +260,8 @@ def save_dataset(samples, data_name):
     
     # Save Saliency Map with normalization
     saliency = s["saliency"]
-    sal_tensor = saliency.clone().detach().float()
-      
-    save_image(sal_tensor, sal_path)
+    heatmap_image = convert_to_heatmap(saliency, outlier_perc=5.0)
+    heatmap_image.save(sal_path)
 
     # Save Ground Truth and Prediction
     label_val = int(s["label"])
@@ -320,6 +320,7 @@ def save_all_data(seed, device, k=4): # do for all classes like in evaluate
   train_set_celeba, _, _ = load_data("CelebAHC", reload=False)
   samples_celeba = saliency_sampler(train_set_celeba, saliency_dict_celeba, n_classes=2, k=k)
   save_dataset(samples_celeba, "CelebAHC")
+
 
 def load_saved_dataset(data_name):
   dataset_dir = os.path.join(DATA_PATH, data_name)
