@@ -1,4 +1,8 @@
 import os
+import json
+import torch
+import random
+from torchvision.utils import save_image
 from model.model import load_model
 from dataset.dataset import load_data, create_dataloaders
 from functions.optimizer import load_optimizer
@@ -6,14 +10,13 @@ from functions.loss import load_loss_fun
 from functions.functions import train_model, eval_model
 from functions.wb_eval import wb_train
 from functions.chc_eval import celeba_train
-from functions.xai import explain_dataset
-from functions.loss import load_loss_fun
-import torch
-import random
+from functions.xai import explain_dataset_with_predictions
+from PIL import Image
 
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 SALIENCY_PATH = os.path.join(CURR_DIR, "saliency")
+DATA_PATH = os.path.join(CURR_DIR, "data")
 
 def prepare_mnist_saliency(seed, device, dataset):
   model = load_model("ModernLeNet", device=device)
@@ -42,14 +45,19 @@ def prepare_mnist_saliency(seed, device, dataset):
     eval_loader=val_loader, 
     device=device
   )
-  all_attr, _ = explain_dataset(train_loader, model, device)
+  
+  # Unpack predictions alongside attributions
+  all_attr, _, all_preds = explain_dataset_with_predictions(train_loader, model, device)
   os.makedirs(SALIENCY_PATH, exist_ok=True)
   saliency_dict = {}
 
+  # Save both attribution and prediction in the dictionary
   for i in range(len(train_set)):
     item_id = train_set[i][0]
-    saliency_map = all_attr[i]
-    saliency_dict[item_id] = saliency_map
+    saliency_dict[item_id] = {
+      "saliency": all_attr[i],
+      "prediction": all_preds[i]
+    }
   
   save_path = os.path.join(SALIENCY_PATH, f"{dataset}_sal.pth")
   torch.save(saliency_dict, save_path)
@@ -65,7 +73,6 @@ def load_mnist_saliency(seed, device, dataset):
   print(f"Loaded {len(saliency_dict)} saliency maps from '{load_path}'")
     
   return saliency_dict
-
 
 
 def prepare_wb_saliency(seed, device):
@@ -87,18 +94,24 @@ def prepare_wb_saliency(seed, device):
     patience=3,
     device=device
   )
-  all_attr, _ = explain_dataset(train_loader, model, device)
+  
+  # Unpack predictions
+  all_attr, _, all_preds = explain_dataset_with_predictions(train_loader, model, device)
   os.makedirs(SALIENCY_PATH, exist_ok=True)
   saliency_dict = {}
 
+  # Save both attribution and prediction
   for i in range(len(train_set)):
     item_id = train_set[i][0]
-    saliency_map = all_attr[i]
-    saliency_dict[item_id] = saliency_map
+    saliency_dict[item_id] = {
+      "saliency": all_attr[i],
+      "prediction": all_preds[i]
+    }
   
   save_path = os.path.join(SALIENCY_PATH, "wb_sal.pth")
   torch.save(saliency_dict, save_path)
   print(f"Successfully saved {len(saliency_dict)} saliency maps to '{save_path}'")
+
 
 def load_wb_saliency(seed, device="cuda"):
   load_path = os.path.join(SALIENCY_PATH, "wb_sal.pth")
@@ -121,7 +134,6 @@ def prepare_celeba_saliency(seed, device):
   m_params = [params] * 3
   train_loader, val_loader, test_loader = create_dataloaders(data, m_params)
   
-  # Ensure celeba_train is imported 
   _, _ = celeba_train(
     model=model, 
     train_loader=train_loader, 
@@ -133,18 +145,23 @@ def prepare_celeba_saliency(seed, device):
     device=device
   )
   
-  all_attr, _ = explain_dataset(train_loader, model, device)
+  # Unpack predictions
+  all_attr, _, all_preds = explain_dataset_with_predictions(train_loader, model, device)
   os.makedirs(SALIENCY_PATH, exist_ok=True)
   saliency_dict = {}
 
+  # Save both attribution and prediction
   for i in range(len(train_set)):
     item_id = train_set[i][0]
-    saliency_map = all_attr[i]
-    saliency_dict[item_id] = saliency_map
+    saliency_dict[item_id] = {
+      "saliency": all_attr[i],
+      "prediction": all_preds[i]
+    }
   
   save_path = os.path.join(SALIENCY_PATH, "celeba_sal.pth")
   torch.save(saliency_dict, save_path)
   print(f"Successfully saved {len(saliency_dict)} saliency maps to '{save_path}'")
+
 
 def load_celeba_saliency(seed, device="cuda"):
   load_path = os.path.join(SALIENCY_PATH, "celeba_sal.pth")
@@ -155,7 +172,6 @@ def load_celeba_saliency(seed, device="cuda"):
   print(f"Loaded {len(saliency_dict)} saliency maps from '{load_path}'")
     
   return saliency_dict
-
 
 
 def saliency_sampler(dataset, saliency_dict, n_classes, k):
@@ -196,15 +212,154 @@ def saliency_sampler(dataset, saliency_dict, n_classes, k):
         item_id, img, label, mask = dataset[idx]
         
         if item_id in saliency_dict:
+          dict_entry = saliency_dict[item_id]
+          
+          sal_map = dict_entry["saliency"]
+          pred_val = dict_entry["prediction"]
+
           sampled_data.append({
             "id": item_id,
             "img": img,
             "label": y,
             "mask": mask,
             "confounded": c,
-            "saliency": saliency_dict[item_id]
+            "saliency": sal_map,
+            "prediction": pred_val
           })
         else:
           print(f"Warning: Item {item_id} not found in saliency_dict. Skipping.")
           
   return sampled_data
+
+# Dicts to go from int to string for labels
+fmnist_to_string = {0: "t-shirt/top",1: "trouser",2: "pullover",3: "dress",4: "coat",5: "sandal",6: "shirt",7: "sneaker",8: "bag",9: "ankle boot"}
+wb_to_string = {1: "waterbird", 0: "landbird"}
+celebahc_to_string = {1: "blond hair", 0: "not blond hair"}
+lab_to_str = {
+  "DecoyFMNIST": fmnist_to_string,
+  "Waterbirds": wb_to_string,
+  "CelebAHC": celebahc_to_string
+}
+
+def save_dataset(samples, data_name):
+  dataset_dir = os.path.join(DATA_PATH, data_name)
+  os.makedirs(dataset_dir, exist_ok=True)
+  
+  for k, s in enumerate(samples):
+    sample_dir = os.path.join(dataset_dir, f"sample_{k}")
+    os.makedirs(sample_dir, exist_ok=True)
+    
+    img_path = os.path.join(sample_dir, "img.png")
+    sal_path = os.path.join(sample_dir, "sal.png")
+    info_path = os.path.join(sample_dir, "info.json")
+    
+    # Save Image
+    img_tensor = s["img"]
+    save_image(img_tensor, img_path)
+    
+    # Save Saliency Map with normalization
+    saliency = s["saliency"]
+    sal_tensor = saliency.clone().detach().float()
+      
+    save_image(sal_tensor, sal_path)
+
+    # Save Ground Truth and Prediction
+    label_val = int(s["label"])
+    pred_val = int(s["prediction"])
+
+    if data_name == "DecoyFashionMNIST":
+      label_str = fmnist_to_string[label_val]
+      pred_str = fmnist_to_string[pred_val]
+    elif data_name == "Waterbirds":
+      label_str = wb_to_string[label_val]
+      pred_str = wb_to_string[pred_val]
+    elif data_name == "CelebAHC":
+      label_str = celebahc_to_string[label_val]
+      pred_str = celebahc_to_string[pred_val]
+    else:
+      label_str = str(label_val)
+      pred_str = str(pred_val)
+
+
+    info_dict = {
+      "ground_truth_label": label_str,
+      "prediction": pred_str
+    }
+    
+    with open(info_path, "w") as f:
+      json.dump(info_dict, f, indent=2)
+
+  print(f"Successfully exported {len(samples)} samples to '{dataset_dir}'")
+
+
+def save_all_data(seed, device, k=4): # do for all classes like in evaluate
+  # 1. Decoy MNIST
+  print("\nProcessing DecoyMNIST...")
+  saliency_dict_mnist = load_mnist_saliency(seed, device, "DecoyMNIST")
+  train_set_mnist, _, _ = load_data("DecoyMNIST", seed=seed, reload=True, bias_ratio=[0.99]*10, variation=2, train_patch=False)
+  samples_mnist = saliency_sampler(train_set_mnist, saliency_dict_mnist, n_classes=10, k=k)
+  save_dataset(samples_mnist, "DecoyMNIST")
+
+  # 2. Decoy Fashion MNIST
+  print("\nProcessing DecoyFashionMNIST...")
+  saliency_dict_fmnist = load_mnist_saliency(seed, device, "DecoyFashionMNIST")
+  train_set_fmnist, _, _ = load_data("DecoyFashionMNIST", seed=seed, reload=True, bias_ratio=[0.99]*10, variation=2, train_patch=False)
+  samples_fmnist = saliency_sampler(train_set_fmnist, saliency_dict_fmnist, n_classes=10, k=k)
+  save_dataset(samples_fmnist, "DecoyFashionMNIST")
+  
+  # 3. Waterbirds
+  print("\nProcessing Waterbirds...")
+  saliency_dict_wb = load_wb_saliency(seed, device)
+  train_set_wb, _, _ = load_data("Waterbirds", reload=False, balance=True, seed=seed)
+  samples_wb = saliency_sampler(train_set_wb, saliency_dict_wb, n_classes=2, k=k)
+  save_dataset(samples_wb, "Waterbirds")
+  
+  # 4. CelebAHC
+  print("\nProcessing CelebAHC...")
+  saliency_dict_celeba = load_celeba_saliency(seed, device)
+  train_set_celeba, _, _ = load_data("CelebAHC", reload=False)
+  samples_celeba = saliency_sampler(train_set_celeba, saliency_dict_celeba, n_classes=2, k=k)
+  save_dataset(samples_celeba, "CelebAHC")
+
+def load_saved_dataset(data_name):
+  dataset_dir = os.path.join(DATA_PATH, data_name)
+  
+  if not os.path.exists(dataset_dir):
+    raise FileNotFoundError(f"Dataset directory not found: {dataset_dir}")
+      
+  samples = []
+  
+  sample_folders = [f for f in os.listdir(dataset_dir) if f.startswith("sample_")]
+  sample_folders.sort(key=lambda x: int(x.split('_')[1]))
+  
+  for folder in sample_folders:
+    sample_dir = os.path.join(dataset_dir, folder)
+    
+    img_path = os.path.join(sample_dir, "img.png")
+    sal_path = os.path.join(sample_dir, "sal.png")
+    info_path = os.path.join(sample_dir, "info.json")
+    
+    # Load Images as PIL (keep them as PIL for the HF pipeline)
+    try:
+      img_pil = Image.open(img_path).convert("RGB")
+      sal_pil = Image.open(sal_path).convert("RGB")
+    except (FileNotFoundError, OSError) as e:
+      print(f"Warning: Skipping {folder} due to missing or corrupted image files. ({e})")
+      continue
+        
+    try:
+      with open(info_path, "r") as f:
+        info_dict = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+      print(f"Warning: Skipping {folder} due to missing or invalid info.json. ({e})")
+      continue
+        
+    samples.append({
+      "img": img_pil,
+      "saliency": sal_pil,
+      "label": info_dict.get("ground_truth_label", "Unknown"),
+      "pred": info_dict.get("prediction", "Unknown")
+    })
+      
+  print(f"Successfully loaded {len(samples)} samples from '{dataset_dir}'")
+  return samples

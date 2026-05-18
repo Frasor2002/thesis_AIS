@@ -150,6 +150,35 @@ def explain_dataset(loader: DataLoader, model: nn.Module, device: str="cpu") -> 
 
   return all_attr, all_images
 
+def explain_dataset_with_predictions(loader: DataLoader, model: nn.Module, device: str="cpu") -> tuple:
+  model.eval()
+  attr_lists = []
+  imgs_lists = []
+  preds_lists = []
+
+  loop = tqdm(loader, desc="Explaining", leave=False)
+  for indices, imgs, targets, masks in loop:
+    imgs = imgs.to(device)
+    
+    with torch.no_grad():
+      logits = model(imgs)
+      preds = logits.argmax(dim=1)
+      
+    imgs.requires_grad_(True)
+    attrs = compute_explanation("input gradient", model, imgs) 
+    imgs.requires_grad_(False)
+
+    # Save attrs, imgs, and preds to lists
+    attr_lists.append(attrs.detach().cpu())
+    imgs_lists.append(imgs.detach().cpu())
+    preds_lists.append(preds.detach().cpu())
+
+  all_attr = torch.cat(attr_lists, dim=0)
+  all_images = torch.cat(imgs_lists, dim=0)
+  all_preds = torch.cat(preds_lists, dim=0)
+
+  return all_attr, all_images, all_preds
+
 
 # TODO improve
 def evaluate_explainations(pred_expl: torch.Tensor, gt_expl: Any, targets: Any) -> tuple:

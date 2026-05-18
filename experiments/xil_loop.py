@@ -194,6 +194,7 @@ def run_wb_xil(
     model=model, 
     lr=1e-2,
     epochs=60,
+    patience=3,
     sampling_strategy=sampling_strategy,
     budget=budget,
     val_loader=val_loader,
@@ -229,7 +230,7 @@ def run_celeba_xil(
   train_set, val_set, test_set = load_data(name="CelebAHC", reload=False)
   
   data = [train_set, val_set, test_set]
-  params = {"batch_size": 32}
+  params = {"batch_size": 64}
   m_params = [params] * 3
   train_loader, val_loader, test_loader = create_dataloaders(data, m_params)
 
@@ -238,8 +239,7 @@ def run_celeba_xil(
     train_loader=train_loader, 
     optimizer=optim, 
     loss_fun=loss, 
-    n_epochs=100, 
-    patience=3,
+    n_epochs=10, 
     eval_loader=val_loader, 
     device=device
   )

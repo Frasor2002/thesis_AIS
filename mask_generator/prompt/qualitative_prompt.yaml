@@ -1,9 +1,11 @@
 prompt: |
   GOAL:
-    Analyze the provided image and its corresponding saliency map to identify potential confounders. The true label for this image is: {label}.
+    Analyze the provided image and its corresponding saliency map to identify potential confounders. 
+    The model predicted the image as a {prediction}.
+    The true label for this image is {label}.
 
   INSTRUCTIONS:
-    1. EXPLANATION: Examine the saliency map to see which regions the model focuses on. Explain whether these highlighted regions correspond to the actual object of interest or to confounders (e.g., irrelevant background patterns, watermarks, lighting artifacts, or co-occurring objects).
+    1. EXPLANATION: Examine the saliency map to see which regions the model focuses on. Explain whether these highlighted regions correspond to the actual object of interest or to confounders.
     2. BOUNDING BOXES: Locate the exact areas of the identified confounders. Do not guess or assume information not visible in the image.
 
   OUTPUT FORMAT:
