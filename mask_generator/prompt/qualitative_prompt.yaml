@@ -21,3 +21,5 @@ prompt: |
         "bbox": [xmin, ymin, xmax, ymax]
       }
     ]
+test: |
+  Describe shortly the image and the saliency map. (The first is the image and the second the saliency of the model.)

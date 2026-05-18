@@ -27,7 +27,7 @@ class VLMLoader:
     with open(self.prompt_path, "r", encoding="utf-8") as file:
       prompt_data = yaml.safe_load(file)
             
-    return prompt_data["prompt"]
+    return prompt_data["test"]
 
 
   def detect_confounders(self, img: PIL.Image, saliency: PIL.Image, pred: str, label: str):
@@ -39,33 +39,31 @@ class VLMLoader:
       {
         "role": "user",
         "content": [
-          {"type": "image"},
-          {"type": "image"},
+          {"type": "image", "image": img},
+          {"type": "image", "image": img},
           {"type": "text", "text": prompt},
         ]
       },
     ]
-    formatted_prompt = self.processor.apply_chat_template(
+    inputs = self.processor.apply_chat_template(
       messages, 
       add_generation_prompt=True, 
-      tokenize=False,
-    )
-
-    inputs = self.processor(
-      text=formatted_prompt, 
-      images=[img, saliency], 
+      tokenize=True,           
+      return_dict=True,
       return_tensors="pt"
     ).to(self.model.device)
 
     with torch.no_grad():
       output = self.model.generate(
         **inputs, 
-        max_new_tokens=500
+        max_new_tokens=200
       )
-      
+    
+    prompt_length = inputs["input_ids"].shape[1]
+    new_tokens = output[0][prompt_length:]
     output_text = self.processor.decode(
-      output[0], 
+      new_tokens, 
       skip_special_tokens=True
-    )
+    ).strip()
 
     return output_text

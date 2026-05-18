@@ -3,6 +3,7 @@ dataset/data
 model/bin
 log
 saliency
+mask_generator/data
 venv-pytorch
 
 

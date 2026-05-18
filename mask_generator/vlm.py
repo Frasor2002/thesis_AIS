@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 from mask_generator.utils import login_to_hub
 import os
-from mask_generator.vlm_models.old_hf_vlm_loader import VLMLoader
+from mask_generator.vlm_models.hf_vlm_loader import VLMLoader
 #from mask_generator.vlm_models.google_api import load_google_vlm
 
 

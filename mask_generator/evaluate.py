@@ -1,6 +1,6 @@
 from mask_generator.vlm import load_VLM
 from mask_generator.saliency import load_saved_dataset
-from mask_generator.utils import save_visualization, evaluate_masks, format_saliency_for_vlm, parse_bboxes, bboxes_to_mask
+from mask_generator.utils import save_visualization, evaluate_masks, format_saliency_for_vlm, parse_bboxes, bboxes_to_mask, log_vlm_output
 import time
 
 def test_mnist(model_id, seed, device, dataset, use_api):
@@ -11,12 +11,13 @@ def test_mnist(model_id, seed, device, dataset, use_api):
   for i, s in enumerate(samples):
     item_id = s.get("id", i)
     img = s["img"]
-    lab = s["label"] # Already formatted as string during save
+    pred = s["pred"]
+    lab = s["label"]
     sal = format_saliency_for_vlm(s["saliency"])
     mask = s.get("mask", None)
 
     start_time = time.time()
-    output = vlm.detect_confounders(img, saliency=sal, label=lab)
+    output = vlm.detect_confounders(img, saliency=sal, label=lab, pred=pred)
     end_time = time.time()
     inference_time = end_time - start_time
 
@@ -25,11 +26,14 @@ def test_mnist(model_id, seed, device, dataset, use_api):
       print(f"Confounded: {mask.sum() > 1}")
     print(f"Time for 1 sample: {inference_time}")
 
+    print(output)
+    log_vlm_output(dataset, i, output)
+
     # Handle shape whether img is a PIL Image or PyTorch Tensor
-    shape = img.size[::-1] if hasattr(img, 'size') else img.shape[-2:]
-    output = bboxes_to_mask(parse_bboxes(output), shape, normalize=True)
+    #shape = img.size[::-1] if hasattr(img, 'size') else img.shape[-2:]
+    #output = bboxes_to_mask(parse_bboxes(output), shape, normalize=True)
     
-    save_visualization(img, sal, output, mask, f"{dataset}_{i}.pdf", item_id, lab)
+    #save_visualization(img, sal, output, mask, f"{dataset}_{i}.pdf", item_id, lab)
     # if mask is not None:
     #   print(evaluate_masks(mask, output))
 
@@ -41,12 +45,13 @@ def test_wb(model_id, seed, device, use_api):
   for i, s in enumerate(samples):
     item_id = s.get("id", i)
     img = s["img"]
+    pred = s["pred"]
     lab = s["label"]
     sal = format_saliency_for_vlm(s["saliency"])
     mask = s.get("mask", None)
 
     start_time = time.time()
-    output = vlm.detect_confounders(img, saliency=sal, label=lab)
+    output = vlm.detect_confounders(img, saliency=sal, label=lab, pred=pred)
     end_time = time.time()
     inference_time = end_time - start_time
 
@@ -55,10 +60,13 @@ def test_wb(model_id, seed, device, use_api):
       print(f"Confounded: {mask.sum() > 1}")
     print(f"Time for 1 sample: {inference_time}")
 
-    shape = img.size[::-1] if hasattr(img, 'size') else img.shape[-2:]
-    output = bboxes_to_mask(parse_bboxes(output), shape, normalize=True)
+    print(output)
+    log_vlm_output("Waterbirds", i, output)
 
-    save_visualization(img, sal, output, mask, f"wb_{i}.pdf", item_id, lab)
+    #shape = img.size[::-1] if hasattr(img, 'size') else img.shape[-2:]
+    #output = bboxes_to_mask(parse_bboxes(output), shape, normalize=True)
+
+    #save_visualization(img, sal, output, mask, f"wb_{i}.pdf", item_id, lab)
     # if mask is not None:
     #   print(evaluate_masks(mask, output))
 
@@ -70,12 +78,13 @@ def test_chc(model_id, seed, device, use_api):
   for i, s in enumerate(samples):
     item_id = s.get("id", i)
     img = s["img"]
+    pred = s["pred"]
     lab = s["label"]
     sal = format_saliency_for_vlm(s["saliency"])
     mask = s.get("mask", None)
 
     start_time = time.time()
-    output = vlm.detect_confounders(img, saliency=sal, label=lab)
+    output = vlm.detect_confounders(img, saliency=sal, label=lab, pred=pred)
     end_time = time.time()
     inference_time = end_time - start_time
 
@@ -83,10 +92,13 @@ def test_chc(model_id, seed, device, use_api):
     if mask is not None:
       print(f"Confounded: {mask.sum() > 1}")
     print(f"Time for 1 sample: {inference_time}")
-    
-    shape = img.size[::-1] if hasattr(img, 'size') else img.shape[-2:]
-    output = bboxes_to_mask(parse_bboxes(output), shape, normalize=True)
 
-    save_visualization(img, sal, output, mask, f"celeba_{i}.pdf", item_id, lab)
+    print(output)
+    log_vlm_output("CelebAHC", i, output)
+    
+    #shape = img.size[::-1] if hasattr(img, 'size') else img.shape[-2:]
+    #output = bboxes_to_mask(parse_bboxes(output), shape, normalize=True)
+
+    #save_visualization(img, sal, output, mask, f"celeba_{i}.pdf", item_id, lab)
     # if mask is not None:
     #   print(evaluate_masks(mask, output))

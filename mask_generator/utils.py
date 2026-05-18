@@ -68,6 +68,12 @@ def bboxes_to_mask(bboxes, image_shape, normalize=True):
 
   return mask
 
+def log_vlm_output(dataset_name, sample_id, output_text,):
+  log_filepath = os.path.join(LOG_PATH, "vlm_out.txt") 
+  with open(log_filepath, "a", encoding="utf-8") as f:
+    f.write(f"=== Dataset: {dataset_name} | Sample ID: {sample_id} ===\n")
+    f.write(f"{output_text}\n")
+    f.write("-" * 50 + "\n\n")
 
 def save_visualization(image, saliency, pred_mask, gt_mask, save_path, sample_id="", class_label=""):
   # Ensure the directory exists
