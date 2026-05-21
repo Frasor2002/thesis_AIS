@@ -7,7 +7,6 @@ from functions.loss import load_loss_fun
 from functions.functions import train_model, eval_model, save_checkpoint, load_checkpoint
 from functions.wb_eval import wb_eval, wb_train, wb_log_plot
 from functions.xai import explain_dataset, evaluate_explainations, evaluate_confounder_dependence
-from sandbox_celeba import FREEZE
 from utils.utils import enable_reproducibility
 from functions.loss import load_loss_fun
 from experiments.utils import create_common_checkpoint
