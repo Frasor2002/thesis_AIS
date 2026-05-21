@@ -194,12 +194,40 @@ def wb_train(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer, l
   training_dynamics = {}
   best_val_loss = float('inf')
   patience_counter = 0
-  loop = tqdm(range(n_epochs), desc="Training model")
+  loop = tqdm(range(n_epochs + 1), desc="Training model")
 
   eval_loss_fun = load_loss_fun("CrossEntropy")
 
   for epoch in loop:
-    loop.set_description(f"Epoch {epoch + 1}/{n_epochs}")
+    loop.set_description(f"Epoch {epoch}/{n_epochs}")
+
+    if epoch == 0:
+      log["epoch"].append(epoch)
+      log["train_ce_loss"].append(float('nan'))
+      log["train_rr_loss"].append(float('nan'))
+      log["train_acc"].append(float('nan'))
+
+      info_dict = {"ce_loss": "N/A", "acc": "N/A"}
+
+      if eval_loader is not None:
+        eval_loss, eval_acc, worst_group_acc, group_accs = wb_eval(model, eval_loader, eval_loss_fun, device)
+        log["eval_loss"].append(eval_loss)
+        log["eval_acc"].append(eval_acc)
+        log["worst_group_acc"].append(worst_group_acc)
+        
+        for group_key, acc in group_accs.items():
+          if group_key not in log["group_accs"]:
+            log["group_accs"][group_key] = []
+          log["group_accs"][group_key].append(acc)
+
+        info_dict["val_loss"] = f"{eval_loss:.4f}"
+        info_dict["val_acc"] = f"{eval_acc:.4f}"
+        info_dict["worst_grp"] = f"{worst_group_acc:.4f}"
+        
+        best_val_loss = eval_loss
+
+      loop.set_postfix(info_dict)
+      continue # Skip training for epoch 0
 
     # Train for one epoch using your existing train_epoch function
     train_ce_loss, train_rr_loss, train_acc, epoch_dyn = train_epoch(model, train_loader, optimizer, loss_fun, device)

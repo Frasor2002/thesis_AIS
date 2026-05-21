@@ -254,7 +254,7 @@ class ResNet(nn.Module):
     out = self.fc(out)
     return out
     
-def load_pretrained_weights(model, model_name: str) -> None:
+def load_pretrained_weights(model, model_name: str, freeze: bool) -> None:
   """
   Download pretrained resnet weights.
   """
@@ -270,18 +270,19 @@ def load_pretrained_weights(model, model_name: str) -> None:
   pretrained_dict = {k: v for k, v in pretrained_dict.items() if not k.startswith('fc.')}
   model.load_state_dict(pretrained_dict, strict=False)
 
-  # Freeze all layers excepet the last fully connected one
-  for param in model.parameters():
-    param.requires_grad = False
-  
-  for param in model.layer4.parameters():
-    param.requires_grad = True
+  if freeze:
+  # Freeze all layers excepet the last layer
+    for param in model.parameters():
+      param.requires_grad = False
 
-  for param in model.fc.parameters():
-    param.requires_grad = True
+    for param in model.layer4.parameters():
+      param.requires_grad = True
+
+    for param in model.fc.parameters():
+      param.requires_grad = True
 
 
-def load_resnet(model_name: str= "resnet50", n_classes: int=2, pretrained: bool = True, device: str = "cpu") -> ResNet:
+def load_resnet(model_name: str= "resnet50", n_classes: int=2, pretrained: bool = True,freeze: bool= True, device: str = "cpu") -> ResNet:
   """Load a specific ResNet version given name and number of classes for classification.
   Args:
     name (str): name of the ResNet.
@@ -305,7 +306,7 @@ def load_resnet(model_name: str= "resnet50", n_classes: int=2, pretrained: bool 
     raise ValueError("Wrong ResNet version name.")
   
   model = ResNet(model_param[model_name], n_classes)
-  if pretrained: load_pretrained_weights(model, model_name)
+  if pretrained: load_pretrained_weights(model, model_name, freeze)
   model = model.to(device)
 
   return model

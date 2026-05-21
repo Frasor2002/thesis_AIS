@@ -313,8 +313,15 @@ def balance_data(data_dict, seed=123):
     
     return {key: array[balanced_id] for key, array in data_dict.items()}
 
+def filter_confounded_only(data_dict):
+  y = data_dict['y']
+  places = data_dict['places']
+  
+  confounded_mask = (y == places)
+  return {key: array[confounded_mask] for key, array in data_dict.items()}
 
-def load_waterbirds(reload: bool = False,balance:bool=True, seed:int =123):
+
+def load_waterbirds(reload: bool = False,balance:bool=True, seed:int =123, only_conf=False):
   #caches_exist = all([os.path.exists(f) for f in [TRAIN_NP_FILE, VAL_NP_FILE, TEST_NP_FILE]])
   if reload:
     #print("One or more cache files not found. Preparing datasets...")
@@ -329,6 +336,11 @@ def load_waterbirds(reload: bool = False,balance:bool=True, seed:int =123):
 
   # Balance the datasets
   if balance: train_data = balance_data(train_data, seed=seed)
+
+  if only_conf:
+    train_data = filter_confounded_only(train_data)
+    val_data = filter_confounded_only(val_data)
+    test_data = filter_confounded_only(test_data)
 
   data_pipeline = transforms.Compose([
     transforms.ToTensor(),

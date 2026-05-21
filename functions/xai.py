@@ -9,6 +9,7 @@ import torch.nn as nn
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from torchmetrics.functional.classification import binary_auroc
+import torch.nn.functional as F
 
 
 def visualize_k_expl(all_attr: torch.Tensor, all_imgs: torch.Tensor, dataset: Any, target_label:int, k: int=3):
@@ -180,7 +181,6 @@ def explain_dataset_with_predictions(loader: DataLoader, model: nn.Module, devic
   return all_attr, all_images, all_preds
 
 
-# TODO improve
 def evaluate_explainations(pred_expl: torch.Tensor, gt_expl: Any, targets: Any) -> tuple:
   """Evaluate model explaination by computing a penalty.
   Args:
@@ -241,3 +241,76 @@ def evaluate_explainations(pred_expl: torch.Tensor, gt_expl: Any, targets: Any) 
   return float(global_score), class_scores
 
   
+def evaluate_confounder_dependence(
+  loader: DataLoader, 
+  model: torch.nn.Module, 
+  device: str = "cuda", 
+  noise_std: float = 1.0, 
+) -> dict:
+  model.eval()
+    
+  total_confounded = 0
+  total_flips = 0
+  prob_diff_sum = 0.0
+    
+  loop = tqdm(loader, desc="Evaluating Noise on Confounder", leave=False)
+    
+  for indices, imgs, targets, masks in loop:
+    imgs = imgs.to(device)
+    masks = masks.to(device)
+        
+    # Ensure mask shape
+    if masks.dim() == 3:
+      masks = masks.unsqueeze(1)
+            
+    # Flatten masks to check for confounded samples
+    batch_size = masks.shape[0]
+    masks_flat = masks.view(batch_size, -1)
+        
+    # Identify confounded samples (those with a mask.sum > 0)
+    is_confounded = masks_flat.sum(dim=1) > 0
+        
+    # Skip batch if no confounded samples are present
+    if not is_confounded.any():
+     continue
+            
+    # Filter for only confounded samples
+    c_imgs = imgs[is_confounded]
+    c_masks = masks[is_confounded]
+        
+    with torch.no_grad():
+      orig_logits = model(c_imgs)
+      orig_probs = F.softmax(orig_logits, dim=1)
+      orig_preds = orig_logits.argmax(dim=1)
+            
+      noise = torch.randn_like(c_imgs) * noise_std
+      noisy_imgs = c_imgs + (noise * c_masks)
+            
+            
+      noisy_logits = model(noisy_imgs)
+      noisy_probs = F.softmax(noisy_logits, dim=1)
+      noisy_preds = noisy_logits.argmax(dim=1)
+            
+      flips = (orig_preds != noisy_preds).sum().item()
+      total_flips += flips
+            
+
+      prob_diff = torch.abs(orig_probs - noisy_probs).sum(dim=1) / 2.0 
+      prob_diff_sum += prob_diff.sum().item()
+            
+      total_confounded += c_imgs.size(0)
+            
+    if total_confounded == 0:
+      return {
+        "flip_rate": 0.0, 
+        "mean_prob_diff": 0.0, 
+        "total_confounded": 0
+      }
+        
+    metrics = {
+      "flip_rate": total_flips / total_confounded,
+      "mean_prob_diff": prob_diff_sum / total_confounded,
+      "total_confounded": total_confounded
+    }
+    
+    return metrics

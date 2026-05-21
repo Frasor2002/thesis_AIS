@@ -33,8 +33,13 @@ def print_statistics():
     raise FileNotFoundError(f"Attribute annotations not found at {METADATA_PATH}")
   
   metadata = pd.read_csv(METADATA_PATH)
+  valid_data = metadata[metadata['split'] != -1]
+
   print("\nDataset Split Distribution:")
-  print(metadata[metadata['split'] != -1].groupby(['split', 'y', 'gender']).size())
+  print(valid_data.groupby(['split', 'y', 'gender']).size())
+  print("\n--- Reversed Dataset Split Distribution ---")
+  print("Target: gender | Confounder: y (Hair Color)")
+  print(valid_data.groupby(['split', 'gender', 'y']).size())
 
 
 # CelebAHairColor
@@ -306,18 +311,48 @@ def prepare_celebahc():
     indices=np.array(test_id), x=np.array(test_x), y=np.array(test_y, dtype=np.int64), masks=np.array(test_mask), genders=np.array(test_gender)
   )
 
+def filter_and_map_data(data_dict, only_conf, reverse):
+  indices = data_dict['indices']
+  x = data_dict['x']
+  y = data_dict['y']
+  masks = data_dict['masks']
+  genders = data_dict['genders']
 
-def load_celebahc(reload):
+  if only_conf:
+    confounded_mask = (y == genders)
+    indices = indices[confounded_mask]
+    x = x[confounded_mask]
+    y = y[confounded_mask]
+    masks = masks[confounded_mask]
+    genders = genders[confounded_mask]
+  
+  if reverse:
+    # Swap target and confounder
+    y, genders = genders, y
+    masks = masks.copy()
+    is_conf = (y == genders)
+    masks[is_conf] = 1 - masks[is_conf]
+
+  return {
+    'indices': indices,
+    'x': x,
+    'y': y,
+    'masks': masks,
+    'genders': genders
+  }
+
+
+def load_celebahc(reload = False, only_conf= False, reverse= False):
   #caches_exist = all([os.path.exists(f) for f in [TRAIN_NP_FILE, VAL_NP_FILE, TEST_NP_FILE]])
   if reload:
     prepare_celebahc()
 
   with np.load(TRAIN_NP_FILE) as data:
-    train_data = {key: data[key] for key in data.files}
+    train_data = filter_and_map_data({key: data[key] for key in data.files}, only_conf, reverse)
   with np.load(VAL_NP_FILE) as data:
-    val_data = {key: data[key] for key in data.files}
+    val_data = filter_and_map_data({key: data[key] for key in data.files}, only_conf, reverse)
   with np.load(TEST_NP_FILE) as data:
-    test_data = {key: data[key] for key in data.files}
+    test_data = filter_and_map_data({key: data[key] for key in data.files}, only_conf, reverse)
   
   data_pipeline = transforms.Compose([
     transforms.ToTensor(),
@@ -334,5 +369,5 @@ def load_celebahc(reload):
 if __name__ == "__main__":
   #prepare_data(123)
   print_statistics()
-  train_ds, val_ds, test_ds = load_celebahc(reload=True)
-  print(f"Final Tensor Sizes -> Train: {len(train_ds)}, Val: {len(val_ds)}, Test: {len(test_ds)}")
+  #train_ds, val_ds, test_ds = load_celebahc(reload=False)
+  #print(f"Final Tensor Sizes -> Train: {len(train_ds)}, Val: {len(val_ds)}, Test: {len(test_ds)}")

@@ -6,18 +6,23 @@ from functions.optimizer import load_optimizer
 from functions.loss import load_loss_fun
 from functions.functions import train_model, eval_model, save_checkpoint, load_checkpoint
 from functions.wb_eval import wb_eval, wb_train, wb_log_plot
-from functions.xai import explain_dataset, evaluate_explainations
+from functions.xai import explain_dataset, evaluate_explainations, evaluate_confounder_dependence
+from sandbox_celeba import FREEZE
 from utils.utils import enable_reproducibility
 from functions.loss import load_loss_fun
+from experiments.utils import create_common_checkpoint
 import matplotlib.pyplot as plt
 import numpy as np
 
-def wb_test(seed, loss_name, lr, epoch, reg_rate):
-  use_cuda = torch.cuda.is_available()
-  device = 'cuda' if use_cuda else 'cpu'
-  enable_reproducibility(seed)
+FREEZE = False
+ONLY_CONF = False
 
-  model = load_model("ResNet", model_name="resnet50", n_classes=2, pretrained=True, device=device)
+def wb_test(seed,device, loss_name, lr, epoch, reg_rate):
+  
+
+  model = load_model("ResNet", model_name="resnet50", n_classes=2, pretrained=True,freeze=FREEZE, device=device)
+  load_checkpoint("reset_model_sandbox_wb", model, device)
+  
   optim = load_optimizer("SGD", model.parameters(), lr=lr)
   if loss_name == "CrossEntropy":
     loss = load_loss_fun(loss_name)
@@ -25,7 +30,7 @@ def wb_test(seed, loss_name, lr, epoch, reg_rate):
     loss = load_loss_fun("RRR", reg_rate = reg_rate, normalize=True)
   
   train_set, val_set, test_set = load_data(
-    "Waterbirds", reload=False, balance=True, seed=seed)
+    "Waterbirds", reload=False, balance=True, seed=seed, only_conf=ONLY_CONF)
   data = [train_set, val_set, test_set]
   params = {"batch_size":64}
   m_params = [params]*3
@@ -38,7 +43,7 @@ def wb_test(seed, loss_name, lr, epoch, reg_rate):
     loss_fun=loss, 
     n_epochs=epoch, 
     eval_loader=val_loader, 
-    #patience=3,
+    patience=3,
     device=device
   )
   print(log)
@@ -55,8 +60,18 @@ def wb_test(seed, loss_name, lr, epoch, reg_rate):
   print(exp_penalty)
   print(class_penalty)
 
+  cd = evaluate_confounder_dependence(train_loader, model, device)
+  print(cd)
+
+
+SEED = 123
 
 if __name__ == "__main__":
+  use_cuda = torch.cuda.is_available()
+  device = 'cuda' if use_cuda else 'cpu'
+  enable_reproducibility(SEED)
+  create_common_checkpoint(SEED, "ResNet", diff="sandbox_wb", model_name="resnet50", n_classes=2, pretrained=True,freeze=FREEZE)
+
   ce = "CrossEntropy"
   rrr = "RRR"
   # Best runs found
@@ -64,26 +79,5 @@ if __name__ == "__main__":
   #wb_test(123, rrr, 1e-1, 100, 1e2)
 
   # Different lr
-  wb_test(123, ce, 1e-2, 60, 1e2)
-  wb_test(123, rrr, 1e-2, 60, 1e2)
-
-  # Try different RRR configuration to find the best one
-  #wb_test(123, rrr, 1e-2, 100, 1) #89
-  #wb_test(123, rrr, 1e-2, 100, 1e1) #90
-
-  """
-  wb_test(123, rrr, 1e-2, 100, 1e2) #86
-  wb_test(123, rrr, 1e-2, 100, 1e3)
-  wb_test(123, rrr, 1e-2, 100, 1e4)
-
-  wb_test(123, rrr, 1e-3, 100, 1e2)
-  wb_test(123, rrr, 1e-3, 100, 1e3)
-  wb_test(123, rrr, 1e-3, 100, 1e4)
-
-  wb_test(123, rrr, 1e-4, 100, 1e2)
-  wb_test(123, rrr, 1e-4, 100, 1e3)
-  wb_test(123, rrr, 1e-4, 100, 1e4)
-
-  wb_test(123, rrr, 1e-1, 100, 1e2)
-  wb_test(123, rrr, 1e-1, 100, 1e3)
-  wb_test(123, rrr, 1e-1, 100, 1e4)"""
+  wb_test(SEED,device, ce, 1e-2, 100, 1e2)
+  wb_test(SEED,device, rrr, 1e-2, 100, 1e2)
