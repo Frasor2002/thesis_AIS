@@ -14,13 +14,13 @@ from functions.functions import save_checkpoint
 # Name of checkpoint to reset the model
 RESET_CHECKPOINT="reset_model"
 
-def create_common_checkpoint(seed: int, model_name: str, diff="", **kwargs) -> None:
+def create_common_checkpoint(seed: int, check_name: str, diff="", **kwargs) -> None:
   """Create a common weight checkpoint at the start of an experiment to ensure fair comparison."""
   use_cuda = torch.cuda.is_available()
   device = 'cuda' if use_cuda else 'cpu'
   enable_reproducibility(seed)
 
-  model = load_model(model_name, device=device, **kwargs)
+  model = load_model(check_name, device=device, **kwargs)
   # Same weights for all successive iterations
   save_checkpoint(RESET_CHECKPOINT + diff, model)
 
