@@ -339,8 +339,6 @@ def load_waterbirds(reload: bool = False,balance:bool=True, seed:int =123, only_
 
   if only_conf:
     train_data = filter_confounded_only(train_data)
-    val_data = filter_confounded_only(val_data)
-    test_data = filter_confounded_only(test_data)
 
   data_pipeline = transforms.Compose([
     transforms.ToTensor(),

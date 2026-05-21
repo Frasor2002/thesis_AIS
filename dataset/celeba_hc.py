@@ -350,9 +350,9 @@ def load_celebahc(reload = False, only_conf= False, reverse= False):
   with np.load(TRAIN_NP_FILE) as data:
     train_data = filter_and_map_data({key: data[key] for key in data.files}, only_conf, reverse)
   with np.load(VAL_NP_FILE) as data:
-    val_data = filter_and_map_data({key: data[key] for key in data.files}, only_conf, reverse)
+    val_data = filter_and_map_data({key: data[key] for key in data.files}, False, reverse)
   with np.load(TEST_NP_FILE) as data:
-    test_data = filter_and_map_data({key: data[key] for key in data.files}, only_conf, reverse)
+    test_data = filter_and_map_data({key: data[key] for key in data.files}, False, reverse)
   
   data_pipeline = transforms.Compose([
     transforms.ToTensor(),
