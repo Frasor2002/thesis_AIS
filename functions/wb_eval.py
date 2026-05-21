@@ -239,7 +239,7 @@ def wb_train(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer, l
       training_dynamics[sample_id].append(metrics)
 
     # Log training metrics
-    log["epoch"].append(epoch + 1)
+    log["epoch"].append(epoch)
     log["train_ce_loss"].append(train_ce_loss)
     log["train_rr_loss"].append(train_rr_loss)
     log["train_acc"].append(train_acc)

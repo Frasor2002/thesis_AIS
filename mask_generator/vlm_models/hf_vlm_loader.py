@@ -26,7 +26,7 @@ class VLMLoader:
     with open(self.prompt_path, "r", encoding="utf-8") as file:
       prompt_data = yaml.safe_load(file)
             
-    return prompt_data["test"]
+    return prompt_data["prompt"]
 
 
   def detect_confounders(self, img: PIL.Image, saliency: PIL.Image, pred: str, label: str):

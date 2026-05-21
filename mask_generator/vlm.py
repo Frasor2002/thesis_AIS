@@ -13,7 +13,7 @@ def load_VLM(model_id, use_api=False):
   load_dotenv()
   if not use_api: login_to_hub()
 
-  prompt_path = QUAL_PROMPT_PATH
+  prompt_path = PROMPT_PATH
 
   #if use_api: return load_google_vlm(model_id, prompt_path)
 

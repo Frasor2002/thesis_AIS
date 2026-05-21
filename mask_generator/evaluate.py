@@ -30,12 +30,12 @@ def test_mnist(model_id, seed, device, dataset, use_api):
     log_vlm_output(dataset, i, output)
 
     # Handle shape whether img is a PIL Image or PyTorch Tensor
-    #shape = img.size[::-1] if hasattr(img, 'size') else img.shape[-2:]
-    #output = bboxes_to_mask(parse_bboxes(output), shape, normalize=True)
+    shape = img.size[::-1] if hasattr(img, 'size') else img.shape[-2:]
+    output = bboxes_to_mask(parse_bboxes(output), shape, normalize=False)
     
-    #save_visualization(img, sal, output, mask, f"{dataset}_{i}.pdf", item_id, lab)
-    # if mask is not None:
-    #   print(evaluate_masks(mask, output))
+    save_visualization(img, sal, output, mask, f"{dataset}_{i}.pdf", item_id, lab)
+    if mask is not None:
+      print(evaluate_masks(mask, output))
 
 
 def test_wb(model_id, seed, device, use_api):
@@ -63,12 +63,12 @@ def test_wb(model_id, seed, device, use_api):
     print(output)
     log_vlm_output("Waterbirds", i, output)
 
-    #shape = img.size[::-1] if hasattr(img, 'size') else img.shape[-2:]
-    #output = bboxes_to_mask(parse_bboxes(output), shape, normalize=True)
-
-    #save_visualization(img, sal, output, mask, f"wb_{i}.pdf", item_id, lab)
-    # if mask is not None:
-    #   print(evaluate_masks(mask, output))
+    shape = img.size[::-1] if hasattr(img, 'size') else img.shape[-2:]
+    output = bboxes_to_mask(parse_bboxes(output), shape, normalize=False)
+    
+    save_visualization(img, sal, output, mask, f"wb_{i}.pdf", item_id, lab)
+    if mask is not None:
+      print(evaluate_masks(mask, output))
 
 
 def test_chc(model_id, seed, device, use_api):
@@ -96,9 +96,9 @@ def test_chc(model_id, seed, device, use_api):
     print(output)
     log_vlm_output("CelebAHC", i, output)
     
-    #shape = img.size[::-1] if hasattr(img, 'size') else img.shape[-2:]
-    #output = bboxes_to_mask(parse_bboxes(output), shape, normalize=True)
-
-    #save_visualization(img, sal, output, mask, f"celeba_{i}.pdf", item_id, lab)
-    # if mask is not None:
-    #   print(evaluate_masks(mask, output))
+    shape = img.size[::-1] if hasattr(img, 'size') else img.shape[-2:]
+    output = bboxes_to_mask(parse_bboxes(output), shape, normalize=False)
+    
+    save_visualization(img, sal, output, mask, f"chc_{i}.pdf", item_id, lab)
+    if mask is not None:
+      print(evaluate_masks(mask, output))

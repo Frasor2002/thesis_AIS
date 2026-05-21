@@ -329,6 +329,9 @@ def filter_and_map_data(data_dict, only_conf, reverse):
   if reverse:
     # Swap target and confounder
     y, genders = genders, y
+    y = y.astype(np.int64)
+    genders = genders.astype(np.int64)
+
     masks = masks.copy()
     is_conf = (y == genders)
     masks[is_conf] = 1 - masks[is_conf]

@@ -70,11 +70,10 @@ if __name__ == "__main__":
   use_cuda = torch.cuda.is_available()
   device = 'cuda' if use_cuda else 'cpu'
   enable_reproducibility(SEED)
-  create_common_checkpoint(SEED, "ResNet", diff="sandbox_wb", model_name="resnet50", n_classes=2, pretrained=True,freeze=FREEZE)
+  create_common_checkpoint(SEED, "ResNet", diff="_sandbox_wb", model_name="resnet50", n_classes=2, pretrained=True,freeze=FREEZE)
 
   ce = "CrossEntropy"
   rrr = "RRR"
-  # Best runs found
   #wb_test(123, ce, 1e-1, 100, 1e2)
   #wb_test(123, rrr, 1e-1, 100, 1e2)
 
