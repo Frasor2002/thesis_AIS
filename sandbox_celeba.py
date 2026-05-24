@@ -11,7 +11,7 @@ from functions.functions import load_checkpoint
 from experiments.utils import create_common_checkpoint
 import matplotlib.pyplot as plt
 
-FREEZE = False
+FREEZE = True
 ONLY_CONF = False
 REVERSE = False
 
@@ -33,7 +33,7 @@ def chc_test(seed, device, loss_name, lr, epoch, reg_rate):
     reverse= REVERSE
   )
   data = [train_set, val_set, test_set]
-  params = {"batch_size":32}
+  params = {"batch_size":64}
   m_params = [params]*3
   train_loader, val_loader, test_loader = create_dataloaders(data, m_params)
 
@@ -75,6 +75,6 @@ if __name__ == "__main__":
 
   ce = "CrossEntropy"
   rrr = "RRR"
-  chc_test(SEED, device,  ce, 1e-3, 100, 1)
+  chc_test(SEED, device,  ce, 1e-2, 100, 1)
   chc_test(SEED, device, rrr, 1e-2, 100, 1e1)
 

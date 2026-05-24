@@ -44,6 +44,7 @@ def train_epoch(model: nn.Module, train_loader: DataLoader, optimizer: Optimizer
     rr_val = getattr(loss_fun, "curr_rr", 0.0)
 
     loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5)
     optimizer.step()
 
     # Training dynamics

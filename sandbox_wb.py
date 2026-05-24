@@ -13,7 +13,7 @@ from experiments.utils import create_common_checkpoint
 import matplotlib.pyplot as plt
 import numpy as np
 
-FREEZE = False
+FREEZE = True
 ONLY_CONF = False
 
 def wb_test(seed,device, loss_name, lr, epoch, reg_rate):
@@ -42,7 +42,7 @@ def wb_test(seed,device, loss_name, lr, epoch, reg_rate):
     loss_fun=loss, 
     n_epochs=epoch, 
     eval_loader=val_loader, 
-    patience=3,
+    #patience=3,
     device=device
   )
   print(log)
@@ -77,5 +77,6 @@ if __name__ == "__main__":
   #wb_test(123, rrr, 1e-1, 100, 1e2)
 
   # Different lr
-  wb_test(SEED,device, ce, 1e-2, 100, 1e2)
-  wb_test(SEED,device, rrr, 1e-2, 100, 1e2)
+  #wb_test(SEED,device, ce, 1e-1, 10, 1)
+  wb_test(SEED,device, ce, 1e-2, 10, 1)
+  wb_test(SEED,device, rrr, 1e-1, 10, 1e2)

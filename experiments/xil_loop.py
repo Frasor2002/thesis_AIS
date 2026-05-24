@@ -192,9 +192,9 @@ def run_wb_xil(
   log = xil_loop(
     train_data=train_set,
     model=model, 
-    lr=1e-2,
-    epochs=60,
-    patience=3,
+    lr=1e-1,
+    epochs=10,
+    #patience=3,
     sampling_strategy=sampling_strategy,
     budget=budget,
     val_loader=val_loader,
@@ -251,7 +251,7 @@ def run_celeba_xil(
     train_data=train_set,
     model=model, 
     lr=1e-2,
-    epochs=100,
+    epochs=50,
     patience=3, # try no patience 50 epochs and see
     sampling_strategy=sampling_strategy,
     budget=budget,
