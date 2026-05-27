@@ -1,6 +1,6 @@
-prompt: |
+prompt_wr: |
   GOAL:
-    Analyze the provided image and its corresponding saliency map to identify potential confounders. 
+    Analyze the provided image and its corresponding saliency map to identify potential confounders (wrong reasons). 
     The model predicted the image as a {prediction}.
     The true label for this image is {label}.
 
@@ -9,17 +9,16 @@ prompt: |
     - the sample image
     - the saliency map in a colormap with red colors meaning stronger activation and blue meaning weaker activation.
 
-
   INSTRUCTIONS:
-    1. EXPLANATION: Examine the saliency map to see which regions the model focuses on. Explain whether these highlighted regions correspond to the actual object of interest or to confounders.
-    2. BOUNDING BOXES: Locate the exact areas of the identified confounders. Do not guess or assume information not visible in the image.
+    1. EXPLANATION: Examine the saliency map to see which regions the model focuses on. Identify regions with high activation (red) that do NOT belong to the actual object of interest ({label}), but rather belong to the background, context, or unrelated objects (spurious correlations/confounders).
+    2. BOUNDING BOXES: Locate the exact areas of these identified confounders. Do not guess or assume information not visible in the image. Do not draw bounding boxes over the valid object itself.
 
   OUTPUT FORMAT:
     Provide your explanation first, followed strictly by a JSON block containing the bounding box coordinates [xmin, ymin, xmax, ymax] for each confounder.
     The image is {img_len} X {img_len} so the bounding box should be correct, precise and within the bounds of the image.
 
     Explanation:
-    [Your concise explanation of the saliency map and identified confounders here]
+    [Your concise explanation of the spurious features the model is improperly focusing on]
 
     JSON:
     ```json
@@ -28,3 +27,34 @@ prompt: |
         "bbox": [xmin, ymin, xmax, ymax]
       }
     ]
+    ```
+prompt_rr: |
+  GOAL:
+    Analyze the provided image and its corresponding saliency map to identify valid features (right reasons). 
+    The model predicted the image as a {prediction}.
+    The true label for this image is {label}.
+
+  INPUT:
+    You are provided:
+    - the sample image
+    - the saliency map in a colormap with red colors meaning stronger activation and blue meaning weaker activation.
+
+  INSTRUCTIONS:
+    1. EXPLANATION: Examine the saliency map to see which regions the model focuses on. Identify regions with high activation (red) that correctly correspond to the actual defining characteristics and physical parts of the target object ({label}). 
+    2. BOUNDING BOXES: Locate the exact areas of these valid object features. Do not guess or assume information not visible in the image. Do not draw bounding boxes over background elements or confounders.
+
+  OUTPUT FORMAT:
+    Provide your explanation first, followed strictly by a JSON block containing the bounding box coordinates [xmin, ymin, xmax, ymax] for each valid feature.
+    The image is {img_len} X {img_len} so the bounding box should be correct, precise and within the bounds of the image.
+
+    Explanation:
+    [Your concise explanation of the valid object characteristics the model correctly focuses on]
+
+    JSON:
+    ```json
+    [
+      {
+        "bbox": [xmin, ymin, xmax, ymax]
+      }
+    ]
+    ```

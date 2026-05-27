@@ -2,7 +2,6 @@ import PIL.Image
 from transformers import AutoProcessor, AutoModelForImageTextToText
 import os
 import yaml
-import PIL
 import torch
 
 class VLMLoader:
@@ -10,40 +9,49 @@ class VLMLoader:
     self.model_id = model_id
     self.prompt_path = prompt_path
 
-    #quantization_config = BitsAndBytesConfig(load_in_4bit=True)
-
     self.processor = AutoProcessor.from_pretrained(model_id)
     self.model = AutoModelForImageTextToText.from_pretrained(
       model_id,
-      dtype="auto",
+      torch_dtype="auto", 
       device_map="auto"
     )
-  
-  def _load_prompt(self) -> dict:
+    # Load both prompts into a dictionary
+    self.prompts = self._load_prompts()
+
+  def _load_prompts(self) -> dict:
     if not os.path.exists(self.prompt_path):
       raise FileNotFoundError(f"Prompt file not found at: {self.prompt_path}")
             
     with open(self.prompt_path, "r", encoding="utf-8") as file:
       prompt_data = yaml.safe_load(file)
-            
-    return prompt_data["prompt"]
 
+    # Ensure these keys match your prompt.yaml exactly
+    return {
+      "right_reasons": prompt_data["prompt_rr"],
+      "wrong_reasons": prompt_data["prompt_wr"]
+    }
 
-  def detect_confounders(self, img: PIL.Image, saliency: PIL.Image, pred: str, label: str):
-    prompt = self._load_prompt()
-    prompt = prompt.replace("{prediction}", pred)
-    prompt = prompt.replace("{label}", label)
+  # Added 'right_reasons' boolean flag here
+  def detect_confounders(self, img: PIL.Image, saliency: PIL.Image, pred: str, label: str, right_reasons: bool = False):
+    
+    # Select the correct base prompt
+    base_prompt = self.prompts["right_reasons"] if right_reasons else self.prompts["wrong_reasons"]
+    
+    prompt = base_prompt.replace("{prediction}", str(pred))
+    prompt = prompt.replace("{label}", str(label))
+    prompt = prompt.replace("{img_len}", str(img.width))
 
     messages = [
       {
         "role": "user",
         "content": [
           {"type": "image", "image": img},
-          {"type": "image", "image": img},
+          {"type": "image", "image": saliency}, 
           {"type": "text", "text": prompt},
         ]
       },
     ]
+    
     inputs = self.processor.apply_chat_template(
       messages, 
       add_generation_prompt=True, 
@@ -55,7 +63,7 @@ class VLMLoader:
     with torch.no_grad():
       output = self.model.generate(
         **inputs, 
-        max_new_tokens=200
+        max_new_tokens=512 
       )
     
     prompt_length = inputs["input_ids"].shape[1]

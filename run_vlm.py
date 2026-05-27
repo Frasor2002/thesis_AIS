@@ -1,21 +1,18 @@
-from mask_generator.evaluate import test_mnist, test_wb, test_chc
+from mask_generator.evaluate import test_all_datasets
 from mask_generator.saliency import save_all_data
 from experiments.utils import enable_reproducibility
 import torch
 
 SEED = 123
 
-# 8B params models:
-#google/gemma-4-E4B-it
-#Qwen/Qwen3-VL-8B-Instruct
-
-#Bigger models:
-#google/gemma-4-31B-it
-#google/gemma-4-26B-A4B-it
-#Qwen/Qwen3.6-27B
-#Qwen/Qwen3.5-9B
-#MODEL_ID = "gemma-4-31b-it" #API
-#gemini-2.5-flash #API
+AVAILABLE_MODELS = {
+  "qwen_vl": "Qwen/Qwen3-VL-8B-Instruct",
+  "gemma_31b": "google/gemma-4-31B-it",
+  "gemma_26b": "google/gemma-4-26B-A4B-it",
+  "qwen_27b": "Qwen/Qwen3.6-27B",
+  "qwen_9b": "Qwen/Qwen3.5-9B",
+  "gemma_e4b": "google/gemma-4-E4B-it",
+}
 
 #MODEL_ID = "Qwen/Qwen3-VL-8B-Instruct"
 #MODEL_ID = "gemini-2.5-flash"
@@ -27,9 +24,8 @@ if __name__ == "__main__":
   device = 'cuda' if use_cuda else 'cpu'
   enable_reproducibility(SEED)
 
-  save_all_data(SEED, device, k=10)
+  ## 1. Generate and save the saliency samples
+  save_all_data(SEED, device)
 
-  #test_mnist(MODEL_ID, SEED, device, dataset="DecoyMNIST", use_api=API)
-  #test_mnist(MODEL_ID, SEED, device, dataset="DecoyMNIST", use_api=API)
-  #test_chc(MODEL_ID,SEED, device, API)
-  #test_wb(MODEL_ID, SEED, device, API)
+  # 2. Run the consolidated evaluation for all datasets
+  #test_all_datasets(MODEL_ID, use_api=API)
