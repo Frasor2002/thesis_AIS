@@ -52,6 +52,7 @@ def evaluate_dataset(vlm, model_name, dataset_name, prefix):
 
     # Convert outputs to masks
     shape = (img.size[1], img.size[0])
+    print(f"Shape: {shape}")
     pred_mask_wr = bboxes_to_mask(parse_bboxes(output_wr), shape, normalize=False)
     pred_mask_rr = bboxes_to_mask(parse_bboxes(output_rr), shape, normalize=False)
     
@@ -110,7 +111,7 @@ def evaluate_dataset(vlm, model_name, dataset_name, prefix):
   )
   
   # Log the final averages exclusively to the metrics file
-  log_metrics_output(dataset_name, "FINAL AVERAGES", avg_log_str)
+  log_metrics_output(safe_model, dataset_name, "FINAL AVERAGES", avg_log_str)
 
 
 def test_all_datasets(model_id, use_api=False):
