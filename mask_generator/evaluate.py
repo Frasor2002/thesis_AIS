@@ -15,11 +15,8 @@ import torch
 import numpy as np
 import json
 
-def evaluate_dataset(vlm, dataset_name, prefix):
-  """
-  Runs the evaluation loop for a single dataset, accumulating and logging metrics.
-  """
-  print(f"\n========== Starting Evaluation: {dataset_name} ==========")
+def evaluate_dataset(vlm, model_name, dataset_name, prefix):
+  print(f"\n========== Evaluating {model_name} on {dataset_name} ==========")
   samples = load_saved_dataset(dataset_name)
   num_samples = len(samples)
   
@@ -33,28 +30,28 @@ def evaluate_dataset(vlm, dataset_name, prefix):
   plaus_totals = {"Plausibility_Score": 0.0, "Contradicting_Pixels": 0.0, "Overlap_Ratio": 0.0}
 
   for i, s in enumerate(samples):
-    item_id = s["id"]
-    img = s["img"]
-    pred = s["pred"]
-    lab = s["label"]
-    sal = s["saliency"]
-    mask = s["mask"] 
+    item_id = i # Id is number in the folder
+    img = s["img"] # PIL image
+    pred = s["pred"] # str prediction
+    lab = s["label"] # str prediction
+    sal = s["saliency"] # PIL image
+    mask = s["mask"] # Tensor
 
-    # 1. Evaluate for Wrong Reasons (Confounders)
+    # Generate wrong reason mask in the image
     start_time = time.time()
-    output_wr = vlm.detect_confounders(img, saliency=sal, label=lab, pred=pred, right_reasons=False)
+    output_wr = vlm.detect_confounders(img, saliency=sal, label=lab, pred=pred, rr=False)
     wr_time = time.time() - start_time
 
-    # 2. Evaluate for Right Reasons (Valid Features)
+    # Generate right reason mask in the image
     start_time = time.time()
-    output_rr = vlm.detect_confounders(img, saliency=sal, label=lab, pred=pred, right_reasons=True)
+    output_rr = vlm.detect_confounders(img, saliency=sal, label=lab, pred=pred, rr=True)
     rr_time = time.time() - start_time
 
     print(f"\nSample: {item_id}, Class: {lab} | Confounded GT: {mask.sum() > 1}")
     print(f"Time for WR: {wr_time:.2f}s | RR: {rr_time:.2f}s")
 
     # Convert outputs to masks
-    shape = img.size[::-1] if hasattr(img, 'size') else img.shape[-2:]
+    shape = img.shape[-2:]
     pred_mask_wr = bboxes_to_mask(parse_bboxes(output_wr), shape, normalize=False)
     pred_mask_rr = bboxes_to_mask(parse_bboxes(output_rr), shape, normalize=False)
     
@@ -87,13 +84,12 @@ def evaluate_dataset(vlm, dataset_name, prefix):
     )
     
     # Log to the two separate files
-    log_vlm_output(dataset_name, i, vlm_log_text)
-    log_metrics_output(dataset_name, i, metrics_log_str)
+    log_vlm_output(model_name, dataset_name, i, vlm_log_text)
+    log_metrics_output(model_name, dataset_name, i, metrics_log_str)
     
-    save_visualization(img, sal, pred_mask_wr, mask, f"{prefix}_{i}.pdf", item_id, lab)
+    save_visualization(img, sal, pred_mask_wr, mask, f"{model_name}_{prefix}_{i}.pdf", item_id, lab)
 
 
-  # --- COMPUTE AND LOG AVERAGES AT THE END OF THE DATASET ---
   print(f"\nComputing averages for {dataset_name} across {num_samples} samples...")
   
   std_avgs = {k: v / num_samples for k, v in std_totals.items()}
@@ -132,7 +128,7 @@ def test_all_datasets(model_id, use_api=False):
 
   for dataset_name, prefix in datasets_to_test:
     try:
-      evaluate_dataset(vlm, dataset_name, prefix)
+      evaluate_dataset(vlm, model_id, dataset_name, prefix)
     except FileNotFoundError:
       print(f"Skipping {dataset_name} - Dataset directory not found.")
     except Exception as e:

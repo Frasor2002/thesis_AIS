@@ -1,7 +1,6 @@
 import os
 import json
 import torch
-import random
 from torchvision.utils import save_image
 from model.model import load_model
 from dataset.dataset import load_data, create_dataloaders
@@ -92,7 +91,6 @@ def prepare_wb_saliency(seed, device):
     loss_fun=loss, 
     n_epochs=10,
     eval_loader=val_loader, 
-    patience=3,
     device=device
   )
   
@@ -142,7 +140,6 @@ def prepare_celeba_saliency(seed, device):
     loss_fun=loss, 
     n_epochs=50, 
     eval_loader=val_loader, 
-    patience=3,
     device=device
   )
   
@@ -176,20 +173,24 @@ def load_celeba_saliency(seed, device="cuda"):
 
 
 def saliency_sampler(dataset, saliency_dict, n_classes, k):
-  if k % 2 != 0:
-    raise ValueError("k must be even to sample equally between confounded and unconfounded groups.")
+  if k % 4 != 0:
+    raise ValueError("k must be a multiple of 4 to sample equally between the 4 subgroups (confounded/unconfounded x correct/wrong).")
 
-  half_k = k // 2
+  quarter_k = k // 4
   
-  # Structure: buckets[class_label][is_confounded]
-  buckets = {y: {True: [], False: []} for y in range(n_classes)}
+  # Structure: buckets[class_label][is_confounded][is_correct]
+  buckets = {
+    y: {
+      True: {True: [], False: []}, 
+      False: {True: [], False: []}
+    } for y in range(n_classes)
+  }
   
-  # Group samples by class and confounded status
+  # Group samples by class, confounded status, and prediction correctness
   for i in range(len(dataset)):
     item_id, img, label, mask = dataset[i]
     
     if item_id not in saliency_dict:
-      print(f"Warning: Item {item_id} not found in saliency_dict. Skipping.")
       continue
       
     dict_entry = saliency_dict[item_id]
@@ -205,8 +206,7 @@ def saliency_sampler(dataset, saliency_dict, n_classes, k):
     # Calculate maximum saliency for sorting
     max_sal = sal_map.max().item() if isinstance(sal_map, torch.Tensor) else sal_map.max()
     
-    # Store all necessary data, including whether the prediction was correct
-    buckets[y][is_confounded].append({
+    buckets[y][is_confounded][is_correct].append({
       "idx": i,
       "max_sal": max_sal,
       "sal_map": sal_map,
@@ -216,38 +216,38 @@ def saliency_sampler(dataset, saliency_dict, n_classes, k):
       
   sampled_data = []
   
-  # Sample from each bucket
+  # Sample from each of the 4 buckets per class
   for y in range(n_classes):
     for is_confounded in [True, False]:
-      group_items = buckets[y][is_confounded]
-      
-      # Sort by max saliency (descending order so we pull highest magnitude samples)
-      group_items.sort(key=lambda x: x["max_sal"], reverse=True)
-      sampled_items = group_items[:half_k]
-      
-      if len(sampled_items) < half_k:
-        print(f"Warning: Only found {len(sampled_items)} samples for class {y}, confounded={is_confounded} (requested {half_k}).")
-          
-      for item in sampled_items:
-        idx = item["idx"]
-        item_id, img, _, mask = dataset[idx]
+      for is_correct in [True, False]:
+        group_items = buckets[y][is_confounded][is_correct]
         
-        # Assign the category tag based on the right/wrong prediction evaluated earlier
-        corr_str = "right prediction" if item["is_correct"] else "wrong prediction"
-        conf_str = "confounded" if is_confounded else "not confounded"
-        category = f"{corr_str}, {conf_str}"
+        # Sort by max saliency (descending order)
+        group_items.sort(key=lambda x: x["max_sal"], reverse=True)
+        sampled_items = group_items[:quarter_k]
+        
+        if len(sampled_items) < quarter_k:
+          print(f"Warning: Only found {len(sampled_items)} samples for class {y}, confounded={is_confounded}, correct={is_correct} (requested {quarter_k}).")
+            
+        for item in sampled_items:
+          idx = item["idx"]
+          item_id, img, _, mask = dataset[idx]
+          
+          corr_str = "right prediction" if is_correct else "wrong prediction"
+          conf_str = "confounded" if is_confounded else "not confounded"
+          category = f"{corr_str}, {conf_str}"
 
-        sampled_data.append({
-          "id": item_id,
-          "img": img,
-          "label": y,
-          "mask": mask,
-          "confounded": int(is_confounded),
-          "saliency": item["sal_map"],
-          "prediction": item["pred_val"],
-          "category": category
-        })
-              
+          sampled_data.append({
+            "id": item_id,
+            "img": img,
+            "label": y,
+            "mask": mask,
+            "confounded": int(is_confounded),
+            "saliency": item["sal_map"],
+            "prediction": item["pred_val"],
+            "category": category
+          })
+          
   return sampled_data
 
 # Dicts to go from int to string for labels
@@ -271,6 +271,7 @@ def save_dataset(samples, data_name):
     img_path = os.path.join(sample_dir, "img.png")
     sal_path = os.path.join(sample_dir, "sal.png")
     info_path = os.path.join(sample_dir, "info.json")
+    mask_path = os.path.join(sample_dir, "mask.pt")
     
     # Save Image
     img_tensor = s["img"]
@@ -284,6 +285,9 @@ def save_dataset(samples, data_name):
     # Save Ground Truth and Prediction
     label_val = int(s["label"])
     pred_val = int(s["prediction"])
+
+    # Save Ground Truth maks
+    torch.save(s["mask"], mask_path)
 
     if data_name == "DecoyFashionMNIST":
       label_str = fmnist_to_string[label_val]
@@ -360,11 +364,13 @@ def load_saved_dataset(data_name):
     img_path = os.path.join(sample_dir, "img.png")
     sal_path = os.path.join(sample_dir, "sal.png")
     info_path = os.path.join(sample_dir, "info.json")
+    mask_path = os.path.join(sample_dir, "mask.pt")
     
     # Load Images as PIL (keep them as PIL for the HF pipeline)
     try:
       img_pil = Image.open(img_path).convert("RGB")
       sal_pil = Image.open(sal_path).convert("RGB")
+      mask_tensor = torch.load(mask_path)
     except (FileNotFoundError, OSError) as e:
       print(f"Warning: Skipping {folder} due to missing or corrupted image files. ({e})")
       continue
@@ -379,9 +385,10 @@ def load_saved_dataset(data_name):
     samples.append({
       "img": img_pil,
       "saliency": sal_pil,
-      "label": info_dict.get("ground_truth_label", "Unknown"),
-      "pred": info_dict.get("prediction", "Unknown"),
-      "category": info_dict.get("category", "Unknown")
+      "mask": mask_tensor,
+      "label": info_dict["ground_truth_label"],
+      "pred": info_dict["prediction"],
+      "category": info_dict["category"]
     })
       
   print(f"Successfully loaded {len(samples)} samples from '{dataset_dir}'")

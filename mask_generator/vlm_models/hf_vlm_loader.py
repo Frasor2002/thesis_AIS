@@ -26,18 +26,16 @@ class VLMLoader:
       prompt_data = yaml.safe_load(file)
 
     # Ensure these keys match your prompt.yaml exactly
-    return {
-      "right_reasons": prompt_data["prompt_rr"],
-      "wrong_reasons": prompt_data["prompt_wr"]
-    }
+    return prompt_data
 
   # Added 'right_reasons' boolean flag here
-  def detect_confounders(self, img: PIL.Image, saliency: PIL.Image, pred: str, label: str, right_reasons: bool = False):
+  def detect_confounders(self, img: PIL.Image, saliency: PIL.Image, pred: str, label: str, rr: bool = False):
     
-    # Select the correct base prompt
-    base_prompt = self.prompts["right_reasons"] if right_reasons else self.prompts["wrong_reasons"]
+    # TODO Change
+    if rr: prompt = self.prompts["prompt_rr"]
+    else: prompt = self.prompts["prompt_wr"]
     
-    prompt = base_prompt.replace("{prediction}", str(pred))
+    prompt = prompt.replace("{prediction}", str(pred))
     prompt = prompt.replace("{label}", str(label))
     prompt = prompt.replace("{img_len}", str(img.width))
 

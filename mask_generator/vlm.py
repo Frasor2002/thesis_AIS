@@ -7,7 +7,6 @@ from mask_generator.vlm_models.hf_vlm_loader import VLMLoader
 
 CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 PROMPT_PATH = os.path.join(CURR_DIR, "prompt", "prompt.yaml")
-QUAL_PROMPT_PATH = os.path.join(CURR_DIR, "prompt", "qualitative_prompt.yaml")
 
 def load_VLM(model_id, use_api=False):
   load_dotenv()

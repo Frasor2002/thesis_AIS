@@ -55,7 +55,7 @@ def parse_bboxes(output_text: str):
     print("Parsing failed:", e)
     return []
 
-def bboxes_to_mask(bboxes, image_shape, normalize=True):
+def bboxes_to_mask(bboxes, image_shape, normalize=False):
   H, W = image_shape
   mask = torch.zeros((H, W), dtype=torch.uint8)
 
@@ -76,17 +76,17 @@ def bboxes_to_mask(bboxes, image_shape, normalize=True):
 
   return mask
 
-def log_vlm_output(dataset_name, sample_id, output_text):
+def log_vlm_output(model, dataset_name, sample_id, output_text):
   os.makedirs(LOG_PATH, exist_ok=True)
-  log_filepath = os.path.join(LOG_PATH, f"{dataset_name}_vlm_out.txt") 
+  log_filepath = os.path.join(LOG_PATH, f"{model}_{dataset_name}_vlm_out.txt") 
   with open(log_filepath, "a", encoding="utf-8") as f:
     f.write(f"=== Sample ID: {sample_id} ===\n")
     f.write(f"{output_text}\n")
     f.write("-" * 50 + "\n\n")
 
-def log_metrics_output(dataset_name, sample_id, metrics_text):
+def log_metrics_output(model, dataset_name, sample_id, metrics_text):
   os.makedirs(LOG_PATH, exist_ok=True)
-  log_filepath = os.path.join(LOG_PATH, f"{dataset_name}_metrics.txt") 
+  log_filepath = os.path.join(LOG_PATH, f"{model}_{dataset_name}_metrics.txt") 
   with open(log_filepath, "a", encoding="utf-8") as f:
     f.write(f"=== Sample ID: {sample_id} ===\n")
     f.write(f"{metrics_text}\n")
@@ -120,7 +120,7 @@ def save_visualization(image, saliency, pred_mask, gt_mask, save_path, sample_id
   axes[0].axis('off')
     
   # Saliency map
-  axes[1].imshow(sal_viz, cmap='jet' if sal_viz.ndim == 2 else None)
+  axes[1].imshow(sal_viz)
   axes[1].set_title("Saliency Map", fontsize=14)
   axes[1].axis('off')
     
