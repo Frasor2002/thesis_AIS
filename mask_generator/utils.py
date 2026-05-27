@@ -78,7 +78,7 @@ def bboxes_to_mask(bboxes, image_shape, normalize=False):
 
 def log_vlm_output(model, dataset_name, sample_id, output_text):
   os.makedirs(LOG_PATH, exist_ok=True)
-  log_filepath = os.path.join(LOG_PATH, f"{model}_{dataset_name}_vlm_out.txt") 
+  log_filepath = os.path.join(LOG_PATH,"vlm_output", f"{model}_{dataset_name}_vlm_out.txt") 
   with open(log_filepath, "a", encoding="utf-8") as f:
     f.write(f"=== Sample ID: {sample_id} ===\n")
     f.write(f"{output_text}\n")
@@ -86,7 +86,7 @@ def log_vlm_output(model, dataset_name, sample_id, output_text):
 
 def log_metrics_output(model, dataset_name, sample_id, metrics_text):
   os.makedirs(LOG_PATH, exist_ok=True)
-  log_filepath = os.path.join(LOG_PATH, f"{model}_{dataset_name}_metrics.txt") 
+  log_filepath = os.path.join(LOG_PATH,"metrics", f"{model}_{dataset_name}_metrics.txt") 
   with open(log_filepath, "a", encoding="utf-8") as f:
     f.write(f"=== Sample ID: {sample_id} ===\n")
     f.write(f"{metrics_text}\n")
@@ -94,7 +94,7 @@ def log_metrics_output(model, dataset_name, sample_id, metrics_text):
 
 def save_visualization(image, saliency, pred_mask, gt_mask, save_path, sample_id="", class_label=""):
   # Ensure the directory exists
-  os.makedirs(LOG_PATH, exist_ok=True)
+  os.makedirs(LOG_PATH,"viz", exist_ok=True)
     
   fig, axes = plt.subplots(1, 4, figsize=(20, 5))
     
