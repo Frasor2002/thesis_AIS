@@ -106,15 +106,22 @@ def save_visualization(image, saliency, pred_mask, gt_mask, save_path, sample_id
     
   fig, axes = plt.subplots(1, 4, figsize=(20, 5))
     
-  def format_for_plotting(tensor):
-    if hasattr(tensor, 'detach'): tensor = tensor.detach().cpu().numpy()
-    if isinstance(tensor, np.ndarray) and tensor.ndim == 3 and tensor.shape[0] in [1, 3]:
-      tensor = np.transpose(tensor, (1, 2, 0))
-    if isinstance(tensor, np.ndarray):
-      tensor = np.squeeze(tensor)
-    # Correct color normalization
-    tensor = np.clip(tensor, 0.0, 1.0)
-    return tensor
+  def format_for_plotting(data):
+    if isinstance(data, Image.Image):
+      return np.array(data)
+
+    if hasattr(data, 'detach'): 
+      data = data.detach().cpu().numpy()
+        
+    if isinstance(data, np.ndarray) and data.ndim == 3 and data.shape[0] in [1, 3]:
+      data = np.transpose(data, (1, 2, 0))
+        
+    if isinstance(data, np.ndarray):
+      data = np.squeeze(data)
+      if data.dtype in [np.float16, np.float32, np.float64]:
+        data = np.clip(data, 0.0, 1.0)
+            
+    return data
 
   # Format all inputs
   img_viz = format_for_plotting(image)
