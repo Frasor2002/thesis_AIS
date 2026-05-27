@@ -171,22 +171,21 @@ def load_celeba_saliency(seed, device="cuda"):
     
   return saliency_dict
 
-
 def saliency_sampler(dataset, saliency_dict, n_classes, k):
-  if k % 4 != 0:
-    raise ValueError("k must be a multiple of 4 to sample equally between the 4 subgroups (confounded/unconfounded x correct/wrong).")
+  if k % 2 != 0:
+    raise ValueError("k must be a multiple of 2 to sample equally between the 2 subgroups (confounded/unconfounded).")
 
-  quarter_k = k // 4
+  half_k = k // 2
   
-  # Structure: buckets[class_label][is_confounded][is_correct]
+  # Structure: buckets[class_label][is_confounded]
   buckets = {
     y: {
-      True: {True: [], False: []}, 
-      False: {True: [], False: []}
+      True: [], 
+      False: []
     } for y in range(n_classes)
   }
   
-  # Group samples by class, confounded status, and prediction correctness
+  # Group samples by class and confounded status
   for i in range(len(dataset)):
     item_id, img, label, mask = dataset[i]
     
@@ -206,7 +205,7 @@ def saliency_sampler(dataset, saliency_dict, n_classes, k):
     # Calculate maximum saliency for sorting
     max_sal = sal_map.max().item() if isinstance(sal_map, torch.Tensor) else sal_map.max()
     
-    buckets[y][is_confounded][is_correct].append({
+    buckets[y][is_confounded].append({
       "idx": i,
       "max_sal": max_sal,
       "sal_map": sal_map,
@@ -216,37 +215,37 @@ def saliency_sampler(dataset, saliency_dict, n_classes, k):
       
   sampled_data = []
   
-  # Sample from each of the 4 buckets per class
+  # Sample from each of the 2 buckets per class
   for y in range(n_classes):
     for is_confounded in [True, False]:
-      for is_correct in [True, False]:
-        group_items = buckets[y][is_confounded][is_correct]
-        
-        # Sort by max saliency (descending order)
-        group_items.sort(key=lambda x: x["max_sal"], reverse=True)
-        sampled_items = group_items[:quarter_k]
-        
-        if len(sampled_items) < quarter_k:
-          print(f"Warning: Only found {len(sampled_items)} samples for class {y}, confounded={is_confounded}, correct={is_correct} (requested {quarter_k}).")
-            
-        for item in sampled_items:
-          idx = item["idx"]
-          item_id, img, _, mask = dataset[idx]
+      group_items = buckets[y][is_confounded]
+      
+      # Sort by max saliency (descending order)
+      group_items.sort(key=lambda x: x["max_sal"], reverse=True)
+      sampled_items = group_items[:half_k]
+      
+      if len(sampled_items) < half_k:
+        print(f"Warning: Only found {len(sampled_items)} samples for class {y}, confounded={is_confounded} (requested {half_k}).")
           
-          corr_str = "right prediction" if is_correct else "wrong prediction"
-          conf_str = "confounded" if is_confounded else "not confounded"
-          category = f"{corr_str}, {conf_str}"
+      for item in sampled_items:
+        idx = item["idx"]
+        item_id, img, _, mask = dataset[idx]
+        
+        is_correct = item["is_correct"]
+        corr_str = "right prediction" if is_correct else "wrong prediction"
+        conf_str = "confounded" if is_confounded else "not confounded"
+        category = f"{corr_str}, {conf_str}"
 
-          sampled_data.append({
-            "id": item_id,
-            "img": img,
-            "label": y,
-            "mask": mask,
-            "confounded": int(is_confounded),
-            "saliency": item["sal_map"],
-            "prediction": item["pred_val"],
-            "category": category
-          })
+        sampled_data.append({
+          "id": item_id,
+          "img": img,
+          "label": y,
+          "mask": mask,
+          "confounded": int(is_confounded),
+          "saliency": item["sal_map"],
+          "prediction": item["pred_val"],
+          "category": category
+        })
           
   return sampled_data
 
