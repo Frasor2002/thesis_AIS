@@ -51,7 +51,7 @@ def evaluate_dataset(vlm, model_name, dataset_name, prefix):
     print(f"Time for WR: {wr_time:.2f}s | RR: {rr_time:.2f}s")
 
     # Convert outputs to masks
-    shape = img.shape[-2:]
+    shape = (img.size[1], img.size[0])
     pred_mask_wr = bboxes_to_mask(parse_bboxes(output_wr), shape, normalize=False)
     pred_mask_rr = bboxes_to_mask(parse_bboxes(output_rr), shape, normalize=False)
     
@@ -84,10 +84,13 @@ def evaluate_dataset(vlm, model_name, dataset_name, prefix):
     )
     
     # Log to the two separate files
-    log_vlm_output(model_name, dataset_name, i, vlm_log_text)
-    log_metrics_output(model_name, dataset_name, i, metrics_log_str)
+    safe_model = model_name.replace("/", "-")
+
+    log_vlm_output(safe_model, dataset_name, i, vlm_log_text)
+    log_metrics_output(safe_model, dataset_name, i, metrics_log_str)
+
     
-    save_visualization(img, sal, pred_mask_wr, mask, f"{model_name}_{prefix}_{i}.pdf", item_id, lab)
+    save_visualization(img, sal, pred_mask_wr, mask, f"{safe_model}_{prefix}_{i}.pdf", item_id, lab)
 
 
   print(f"\nComputing averages for {dataset_name} across {num_samples} samples...")
@@ -127,11 +130,6 @@ def test_all_datasets(model_id, use_api=False):
   ]
 
   for dataset_name, prefix in datasets_to_test:
-    try:
-      evaluate_dataset(vlm, model_id, dataset_name, prefix)
-    except FileNotFoundError:
-      print(f"Skipping {dataset_name} - Dataset directory not found.")
-    except Exception as e:
-      print(f"An error occurred while evaluating {dataset_name}: {e}")
+    evaluate_dataset(vlm, model_id, dataset_name, prefix)
 
   print("\n========== All Evaluations Completed ==========")

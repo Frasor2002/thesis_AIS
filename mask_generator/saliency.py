@@ -254,7 +254,7 @@ fmnist_to_string = {0: "t-shirt/top",1: "trouser",2: "pullover",3: "dress",4: "c
 wb_to_string = {1: "waterbird", 0: "landbird"}
 celebahc_to_string = {1: "blond hair", 0: "not blond hair"}
 lab_to_str = {
-  "DecoyFMNIST": fmnist_to_string,
+  "DecoyFashionMNIST": fmnist_to_string,
   "Waterbirds": wb_to_string,
   "CelebAHC": celebahc_to_string
 }

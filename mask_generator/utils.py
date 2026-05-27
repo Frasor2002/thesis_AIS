@@ -35,8 +35,6 @@ def convert_to_heatmap(sal_tensor: torch.Tensor, outlier_perc: float = 5.0) -> I
   
   return Image.fromarray(heatmap_rgb)
 
-
-
 def parse_bboxes(output_text: str):
   try:
     match = re.search(r"\[.*\]", output_text, re.DOTALL)
@@ -77,24 +75,34 @@ def bboxes_to_mask(bboxes, image_shape, normalize=False):
   return mask
 
 def log_vlm_output(model, dataset_name, sample_id, output_text):
-  os.makedirs(LOG_PATH, exist_ok=True)
-  log_filepath = os.path.join(LOG_PATH,"vlm_output", f"{model}_{dataset_name}_vlm_out.txt") 
+  path = os.path.join(LOG_PATH,"vlm_output")
+  os.makedirs(path,  exist_ok=True)
+  
+  # Sanitize model name to prevent subdirectories from being created
+  safe_model = model.replace("/", "-")
+  
+  log_filepath = os.path.join(path, f"{safe_model}_{dataset_name}_vlm_out.txt") 
   with open(log_filepath, "a", encoding="utf-8") as f:
     f.write(f"=== Sample ID: {sample_id} ===\n")
     f.write(f"{output_text}\n")
     f.write("-" * 50 + "\n\n")
 
 def log_metrics_output(model, dataset_name, sample_id, metrics_text):
-  os.makedirs(LOG_PATH, exist_ok=True)
-  log_filepath = os.path.join(LOG_PATH,"metrics", f"{model}_{dataset_name}_metrics.txt") 
+  path = os.path.join(LOG_PATH,"metrics")
+  os.makedirs(path, exist_ok=True)
+  
+  # Sanitize model name to prevent subdirectories from being created
+  safe_model = model.replace("/", "-")
+  
+  log_filepath = os.path.join(path, f"{safe_model}_{dataset_name}_metrics.txt") 
   with open(log_filepath, "a", encoding="utf-8") as f:
     f.write(f"=== Sample ID: {sample_id} ===\n")
     f.write(f"{metrics_text}\n")
     f.write("-" * 50 + "\n\n")
 
 def save_visualization(image, saliency, pred_mask, gt_mask, save_path, sample_id="", class_label=""):
-  # Ensure the directory exists
-  os.makedirs(LOG_PATH,"viz", exist_ok=True)
+  # Ensure the directory exists (Fixed the syntax error here)
+  os.makedirs(os.path.join(LOG_PATH, "viz"), exist_ok=True)
     
   fig, axes = plt.subplots(1, 4, figsize=(20, 5))
     
@@ -139,10 +147,9 @@ def save_visualization(image, saliency, pred_mask, gt_mask, save_path, sample_id
     plt.suptitle(f"Sample: {sample_id} | Class: {class_label}", fontsize=16)
     
   plt.tight_layout()
-  path = os.path.join(LOG_PATH, save_path)
+  path = os.path.join(LOG_PATH,"viz", save_path)
   plt.savefig(path)
   plt.close(fig)
-
 
 def evaluate_masks(y_true: torch.Tensor , y_pred: torch.Tensor) -> dict:
   y_true = y_true.bool()
