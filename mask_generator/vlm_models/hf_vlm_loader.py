@@ -6,15 +6,16 @@ import torch
 
 class VLMLoader:
   def __init__(self, model_id: str, prompt_path: str):
+    cache_dir = os.getenv("HF_HUB_CACHE")
     self.model_id = model_id
     self.prompt_path = prompt_path
 
-    self.processor = AutoProcessor.from_pretrained(model_id)
+    self.processor = AutoProcessor.from_pretrained(model_id, cache_dir=cache_dir)
     self.model = AutoModelForImageTextToText.from_pretrained(
       model_id,
       torch_dtype="auto", 
-      device_map="auto"
-    )
+      device_map="auto",
+      cache_dir=cache_dir)
     # Load both prompts into a dictionary
     self.prompts = self._load_prompts()
 
